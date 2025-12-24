@@ -1,0 +1,393 @@
+/**
+ * FamilyTree Component Usage Example
+ * Demonstrates how to use the family tree visualization with sample data
+ */
+
+'use client';
+
+import React, { useState } from 'react';
+import { Person, Relationship } from '@/lib/db/schema';
+import FamilyTree from './FamilyTree';
+
+/**
+ * Sample data for demonstration
+ */
+const samplePersons: Person[] = [
+  {
+    id: '1',
+    tree_id: 'tree-1',
+    given_name: 'محمد',
+    patronymic_chain: 'بن أحمد بن علي',
+    family_name: 'الفلاني',
+    full_name_ar: 'محمد بن أحمد بن علي الفلاني',
+    full_name_en: 'Muhammad bin Ahmad bin Ali Al-Fulani',
+    gender: 'male',
+    birth_date: '1950-01-15',
+    birth_place: 'الرياض',
+    birth_place_lat: 24.7136,
+    birth_place_lng: 46.6753,
+    death_date: null,
+    death_place: null,
+    death_place_lat: null,
+    death_place_lng: null,
+    is_living: true,
+    photo_url: null,
+    notes: 'الجد الأكبر للعائلة',
+    created_at: Date.now(),
+    updated_at: Date.now(),
+  },
+  {
+    id: '2',
+    tree_id: 'tree-1',
+    given_name: 'فاطمة',
+    patronymic_chain: 'بنت خالد',
+    family_name: 'العمري',
+    full_name_ar: 'فاطمة بنت خالد العمري',
+    full_name_en: 'Fatima bint Khalid Al-Omari',
+    gender: 'female',
+    birth_date: '1955-03-20',
+    birth_place: 'جدة',
+    birth_place_lat: 21.5433,
+    birth_place_lng: 39.1728,
+    death_date: null,
+    death_place: null,
+    death_place_lat: null,
+    death_place_lng: null,
+    is_living: true,
+    photo_url: null,
+    notes: 'زوجة محمد',
+    created_at: Date.now(),
+    updated_at: Date.now(),
+  },
+  {
+    id: '3',
+    tree_id: 'tree-1',
+    given_name: 'أحمد',
+    patronymic_chain: 'بن محمد',
+    family_name: 'الفلاني',
+    full_name_ar: 'أحمد بن محمد الفلاني',
+    full_name_en: 'Ahmad bin Muhammad Al-Fulani',
+    gender: 'male',
+    birth_date: '1980-06-10',
+    birth_place: 'الرياض',
+    birth_place_lat: 24.7136,
+    birth_place_lng: 46.6753,
+    death_date: null,
+    death_place: null,
+    death_place_lat: null,
+    death_place_lng: null,
+    is_living: true,
+    photo_url: null,
+    notes: 'الابن الأول',
+    created_at: Date.now(),
+    updated_at: Date.now(),
+  },
+  {
+    id: '4',
+    tree_id: 'tree-1',
+    given_name: 'سارة',
+    patronymic_chain: 'بنت محمد',
+    family_name: 'الفلاني',
+    full_name_ar: 'سارة بنت محمد الفلاني',
+    full_name_en: 'Sarah bint Muhammad Al-Fulani',
+    gender: 'female',
+    birth_date: '1985-12-05',
+    birth_place: 'الرياض',
+    birth_place_lat: 24.7136,
+    birth_place_lng: 46.6753,
+    death_date: null,
+    death_place: null,
+    death_place_lat: null,
+    death_place_lng: null,
+    is_living: true,
+    photo_url: null,
+    notes: 'الابنة الثانية',
+    created_at: Date.now(),
+    updated_at: Date.now(),
+  },
+  {
+    id: '5',
+    tree_id: 'tree-1',
+    given_name: 'نورة',
+    patronymic_chain: 'بنت عبدالله',
+    family_name: 'السديري',
+    full_name_ar: 'نورة بنت عبدالله السديري',
+    full_name_en: 'Noura bint Abdullah Al-Sudairi',
+    gender: 'female',
+    birth_date: '1982-08-15',
+    birth_place: 'الدمام',
+    birth_place_lat: 26.4207,
+    birth_place_lng: 50.0888,
+    death_date: null,
+    death_place: null,
+    death_place_lat: null,
+    death_place_lng: null,
+    is_living: true,
+    photo_url: null,
+    notes: 'زوجة أحمد',
+    created_at: Date.now(),
+    updated_at: Date.now(),
+  },
+  {
+    id: '6',
+    tree_id: 'tree-1',
+    given_name: 'عبدالله',
+    patronymic_chain: 'بن أحمد',
+    family_name: 'الفلاني',
+    full_name_ar: 'عبدالله بن أحمد الفلاني',
+    full_name_en: 'Abdullah bin Ahmad Al-Fulani',
+    gender: 'male',
+    birth_date: '2005-04-22',
+    birth_place: 'الرياض',
+    birth_place_lat: 24.7136,
+    birth_place_lng: 46.6753,
+    death_date: null,
+    death_place: null,
+    death_place_lat: null,
+    death_place_lng: null,
+    is_living: true,
+    photo_url: null,
+    notes: 'حفيد محمد',
+    created_at: Date.now(),
+    updated_at: Date.now(),
+  },
+  {
+    id: '7',
+    tree_id: 'tree-1',
+    given_name: 'ريم',
+    patronymic_chain: 'بنت أحمد',
+    family_name: 'الفلاني',
+    full_name_ar: 'ريم بنت أحمد الفلاني',
+    full_name_en: 'Reem bint Ahmad Al-Fulani',
+    gender: 'female',
+    birth_date: '2008-11-30',
+    birth_place: 'الرياض',
+    birth_place_lat: 24.7136,
+    birth_place_lng: 46.6753,
+    death_date: null,
+    death_place: null,
+    death_place_lat: null,
+    death_place_lng: null,
+    is_living: true,
+    photo_url: null,
+    notes: 'حفيدة محمد',
+    created_at: Date.now(),
+    updated_at: Date.now(),
+  },
+];
+
+const sampleRelationships: Relationship[] = [
+  // Muhammad (1) and Fatima (2) are spouses
+  {
+    id: 'rel-1',
+    tree_id: 'tree-1',
+    person1_id: '1',
+    person2_id: '2',
+    relationship_type: 'spouse',
+    marriage_date: '1975-05-10',
+    marriage_place: 'الرياض',
+    divorce_date: null,
+    divorce_place: null,
+    created_at: Date.now(),
+  },
+  // Muhammad (1) is parent of Ahmad (3)
+  {
+    id: 'rel-2',
+    tree_id: 'tree-1',
+    person1_id: '1',
+    person2_id: '3',
+    relationship_type: 'parent',
+    marriage_date: null,
+    marriage_place: null,
+    divorce_date: null,
+    divorce_place: null,
+    created_at: Date.now(),
+  },
+  // Fatima (2) is parent of Ahmad (3)
+  {
+    id: 'rel-3',
+    tree_id: 'tree-1',
+    person1_id: '2',
+    person2_id: '3',
+    relationship_type: 'parent',
+    marriage_date: null,
+    marriage_place: null,
+    divorce_date: null,
+    divorce_place: null,
+    created_at: Date.now(),
+  },
+  // Muhammad (1) is parent of Sarah (4)
+  {
+    id: 'rel-4',
+    tree_id: 'tree-1',
+    person1_id: '1',
+    person2_id: '4',
+    relationship_type: 'parent',
+    marriage_date: null,
+    marriage_place: null,
+    divorce_date: null,
+    divorce_place: null,
+    created_at: Date.now(),
+  },
+  // Fatima (2) is parent of Sarah (4)
+  {
+    id: 'rel-5',
+    tree_id: 'tree-1',
+    person1_id: '2',
+    person2_id: '4',
+    relationship_type: 'parent',
+    marriage_date: null,
+    marriage_place: null,
+    divorce_date: null,
+    divorce_place: null,
+    created_at: Date.now(),
+  },
+  // Ahmad (3) and Noura (5) are spouses
+  {
+    id: 'rel-6',
+    tree_id: 'tree-1',
+    person1_id: '3',
+    person2_id: '5',
+    relationship_type: 'spouse',
+    marriage_date: '2003-02-14',
+    marriage_place: 'الرياض',
+    divorce_date: null,
+    divorce_place: null,
+    created_at: Date.now(),
+  },
+  // Ahmad (3) is parent of Abdullah (6)
+  {
+    id: 'rel-7',
+    tree_id: 'tree-1',
+    person1_id: '3',
+    person2_id: '6',
+    relationship_type: 'parent',
+    marriage_date: null,
+    marriage_place: null,
+    divorce_date: null,
+    divorce_place: null,
+    created_at: Date.now(),
+  },
+  // Noura (5) is parent of Abdullah (6)
+  {
+    id: 'rel-8',
+    tree_id: 'tree-1',
+    person1_id: '5',
+    person2_id: '6',
+    relationship_type: 'parent',
+    marriage_date: null,
+    marriage_place: null,
+    divorce_date: null,
+    divorce_place: null,
+    created_at: Date.now(),
+  },
+  // Ahmad (3) is parent of Reem (7)
+  {
+    id: 'rel-9',
+    tree_id: 'tree-1',
+    person1_id: '3',
+    person2_id: '7',
+    relationship_type: 'parent',
+    marriage_date: null,
+    marriage_place: null,
+    divorce_date: null,
+    divorce_place: null,
+    created_at: Date.now(),
+  },
+  // Noura (5) is parent of Reem (7)
+  {
+    id: 'rel-10',
+    tree_id: 'tree-1',
+    person1_id: '5',
+    person2_id: '7',
+    relationship_type: 'parent',
+    marriage_date: null,
+    marriage_place: null,
+    divorce_date: null,
+    divorce_place: null,
+    created_at: Date.now(),
+  },
+];
+
+/**
+ * Example component demonstrating FamilyTree usage
+ */
+export function FamilyTreeExample() {
+  const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
+
+  const handlePersonClick = (person: Person) => {
+    setSelectedPerson(person);
+    console.log('Person clicked:', person);
+  };
+
+  const handlePersonDoubleClick = (person: Person) => {
+    console.log('Person double-clicked:', person);
+  };
+
+  return (
+    <div className="w-full h-screen flex flex-col">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <h1 className="text-2xl font-bold text-gray-900">شجرة العائلة - Family Tree</h1>
+        {selectedPerson && (
+          <p className="text-sm text-gray-600 mt-1">
+            Selected: {selectedPerson.full_name_ar || selectedPerson.given_name}
+          </p>
+        )}
+      </div>
+
+      {/* Tree Visualization */}
+      <div className="flex-1">
+        <FamilyTree
+          persons={samplePersons}
+          relationships={sampleRelationships}
+          rootPersonId="1"
+          locale="ar"
+          onPersonClick={handlePersonClick}
+          onPersonDoubleClick={handlePersonDoubleClick}
+        />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Usage instructions (as JSDoc comment):
+ *
+ * @example
+ * // Basic usage with Arabic locale (default)
+ * <FamilyTree
+ *   persons={persons}
+ *   relationships={relationships}
+ *   locale="ar"
+ * />
+ *
+ * @example
+ * // With English locale
+ * <FamilyTree
+ *   persons={persons}
+ *   relationships={relationships}
+ *   locale="en"
+ * />
+ *
+ * @example
+ * // With specific root person
+ * <FamilyTree
+ *   persons={persons}
+ *   relationships={relationships}
+ *   rootPersonId="person-id-123"
+ *   locale="ar"
+ * />
+ *
+ * @example
+ * // With event handlers
+ * <FamilyTree
+ *   persons={persons}
+ *   relationships={relationships}
+ *   onPersonClick={(person) => console.log('Clicked:', person)}
+ *   onPersonDoubleClick={(person) => console.log('Double-clicked:', person)}
+ *   locale="ar"
+ * />
+ */
+
+export default FamilyTreeExample;

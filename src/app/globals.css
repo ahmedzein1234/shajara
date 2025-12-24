@@ -1,0 +1,687 @@
+@import 'tailwindcss';
+
+/* ========================================
+   SHAJARA - ARABIC TYPOGRAPHY & DESIGN SYSTEM
+   ======================================== */
+
+/* Arabic Typography - Self-hosted Premium Fonts via Fontsource */
+/* Amiri - Elegant calligraphic font for headings */
+@import '@fontsource/amiri/400.css';
+@import '@fontsource/amiri/700.css';
+
+/* Cairo - Modern Arabic font for UI elements */
+@import '@fontsource/cairo/400.css';
+@import '@fontsource/cairo/500.css';
+@import '@fontsource/cairo/600.css';
+@import '@fontsource/cairo/700.css';
+
+/* Tajawal - Clean Arabic font for body text */
+@import '@fontsource/tajawal/400.css';
+@import '@fontsource/tajawal/500.css';
+@import '@fontsource/tajawal/700.css';
+
+/* Aref Ruqaa - Traditional calligraphic font for decorative elements */
+@import '@fontsource/aref-ruqaa/400.css';
+@import '@fontsource/aref-ruqaa/700.css';
+
+@layer base {
+  /* Base styles with subtle Islamic pattern background */
+  body {
+    @apply bg-gradient-to-br from-slate-50 via-white to-emerald-50 min-h-screen;
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2310b981' fill-opacity='0.02'%3E%3Cpath d='M30 30l15-15v30H15V15l15 15zm0 0L15 15h30L30 30z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+
+  /* ========== ARABIC TEXT OPTIMIZATIONS ========== */
+  [dir="rtl"] {
+    font-family: 'Tajawal', 'Cairo', system-ui, -apple-system, sans-serif;
+    font-feature-settings: 'cv01' 1, 'cv02' 1, 'liga' 1, 'calt' 1;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    direction: rtl;
+  }
+
+  /* LTR text */
+  [dir="ltr"] {
+    font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+    direction: ltr;
+  }
+
+  /* ========== ARABIC HEADING HIERARCHY ========== */
+
+  /* H1: Aref Ruqaa - Beautiful calligraphic style for main hero */
+  [dir="rtl"] h1 {
+    font-family: 'Aref Ruqaa', 'Amiri', serif;
+    font-size: 2.75rem;
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: -0.02em;
+    word-spacing: 0.15em;
+    color: #064e3b;
+  }
+
+  /* H2: Amiri - Elegant section headers */
+  [dir="rtl"] h2 {
+    font-family: 'Amiri', serif;
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: -0.015em;
+    color: #047857;
+  }
+
+  /* H3: Cairo - Modern subsections */
+  [dir="rtl"] h3 {
+    font-family: 'Cairo', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.45;
+    color: #059669;
+  }
+
+  /* H4-H6: Tajawal - Clean modern headings */
+  [dir="rtl"] h4,
+  [dir="rtl"] h5,
+  [dir="rtl"] h6 {
+    font-family: 'Tajawal', sans-serif;
+    font-weight: 600;
+    line-height: 1.5;
+    letter-spacing: 0.01em;
+  }
+
+  /* ========== ARABIC BODY TEXT ========== */
+  [dir="rtl"] p {
+    font-family: 'Tajawal', 'Cairo', sans-serif;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.9;
+    letter-spacing: 0.3px;
+    word-spacing: 0.15em;
+    color: #374151;
+  }
+
+  /* Lists - Arabic optimized */
+  [dir="rtl"] ul,
+  [dir="rtl"] ol {
+    padding-right: 2rem;
+    padding-left: 0;
+    line-height: 1.8;
+  }
+
+  [dir="rtl"] li {
+    margin-bottom: 0.5rem;
+  }
+
+  /* Blockquotes with calligraphic style */
+  [dir="rtl"] blockquote {
+    font-family: 'Aref Ruqaa', 'Amiri', serif;
+    font-size: 1.35rem;
+    font-style: normal;
+    line-height: 1.9;
+    border-right: 4px solid #D4AF37;
+    border-left: none;
+    padding-right: 1.5rem;
+    padding-left: 0;
+    color: #1A3A4A;
+    background: linear-gradient(to left, rgba(212, 175, 55, 0.05), transparent);
+  }
+
+  [dir="ltr"] blockquote {
+    border-left: 4px solid #10b981;
+    border-right: none;
+    padding-left: 1.5rem;
+    padding-right: 0;
+  }
+
+  /* Custom scrollbar - Islamic colors */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #f5f0e8;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #1B7F7E, #10b981);
+    border-radius: 5px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #0d5a57, #047857);
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #1B7F7E #f5f0e8;
+  }
+}
+
+@layer utilities {
+  /* ========== RTL-SAFE UTILITIES ========== */
+  .text-start {
+    text-align: start;
+  }
+
+  .text-end {
+    text-align: end;
+  }
+
+  /* Arabic-specific utilities */
+  .arabic-numbers {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ========== TYPOGRAPHY UTILITIES ========== */
+
+  /* Calligraphic display font - Aref Ruqaa for beautiful Arabic headers */
+  .font-display {
+    font-family: 'Aref Ruqaa', 'Amiri', serif;
+    letter-spacing: -0.02em;
+    font-feature-settings: 'liga' 1, 'dlig' 1;
+  }
+
+  /* Modern accent font - Cairo for UI elements */
+  .font-accent {
+    font-family: 'Cairo', sans-serif;
+    font-weight: 600;
+  }
+
+  /* Arabic body font - Tajawal for readable text */
+  .font-arabic {
+    font-family: 'Tajawal', 'Cairo', sans-serif;
+  }
+
+  /* Arabic text with proper features */
+  .arabic-text {
+    font-family: 'Tajawal', sans-serif;
+    font-feature-settings: 'liga' 1, 'calt' 1;
+    line-height: 1.9;
+  }
+
+  /* Calligraphic emphasis - Aref Ruqaa for decorative text */
+  .calligraphic {
+    font-family: 'Aref Ruqaa', serif;
+    font-size: 1.1em;
+    letter-spacing: -0.01em;
+    color: #1A3A4A;
+    font-weight: 700;
+  }
+
+  /* Traditional calligraphy - for quotes and decorative elements */
+  .font-traditional {
+    font-family: 'Aref Ruqaa', serif;
+  }
+
+  /* Amiri for elegant secondary headings */
+  .font-elegant {
+    font-family: 'Amiri', serif;
+  }
+
+  /* Line height utilities for Arabic */
+  .leading-arabic {
+    line-height: 1.85;
+  }
+
+  .leading-arabic-tight {
+    line-height: 1.5;
+  }
+
+  .leading-arabic-loose {
+    line-height: 2.1;
+  }
+
+  /* ========== SMOOTH TRANSITIONS ========== */
+  .transition-smooth {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 300ms;
+  }
+
+  /* ========== GRADIENT BACKGROUNDS ========== */
+  .gradient-emerald {
+    @apply bg-gradient-to-br from-emerald-500 to-teal-600;
+  }
+
+  .gradient-amber {
+    @apply bg-gradient-to-br from-amber-500 to-orange-600;
+  }
+
+  .gradient-purple {
+    @apply bg-gradient-to-br from-purple-500 to-indigo-600;
+  }
+
+  /* Islamic color gradients */
+  .gradient-islamic {
+    background: linear-gradient(135deg, #1B7F7E 0%, #10b981 50%, #0d9488 100%);
+  }
+
+  .gradient-gold {
+    background: linear-gradient(135deg, #D4AF37 0%, #F5D742 50%, #D4AF37 100%);
+  }
+
+  .gradient-heritage {
+    background: linear-gradient(135deg, #1A3A4A 0%, #1B7F7E 50%, #B85C3C 100%);
+  }
+
+  /* ========== ISLAMIC PATTERN BACKGROUNDS ========== */
+  .bg-pattern-star {
+    background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cg transform='translate(100,100)'%3E%3Cpolygon points='0,-50 35,-35 50,0 35,35 0,50 -35,35 -50,0 -35,-35' fill='none' stroke='%231B7F7E' stroke-width='1' opacity='0.15'/%3E%3Cpolygon points='0,-15 15,0 0,15 -15,0' fill='%23D4AF37' opacity='0.1'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 100px 100px;
+    background-repeat: repeat;
+  }
+
+  .bg-pattern-arabesque {
+    background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M25 50 Q37.5 25 50 50 T75 50' fill='none' stroke='%231B7F7E' stroke-width='1' opacity='0.1'/%3E%3Ccircle cx='50' cy='50' r='3' fill='%23D4AF37' opacity='0.15'/%3E%3C/svg%3E");
+    background-size: 60px 60px;
+    background-repeat: repeat;
+  }
+
+  /* ========== DECORATIVE ELEMENTS ========== */
+
+  /* Islamic divider line */
+  .divider-islamic {
+    position: relative;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #D4AF37 20%, #1B7F7E 50%, #D4AF37 80%, transparent);
+    margin: 2rem 0;
+  }
+
+  .divider-islamic::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 12px;
+    height: 12px;
+    background: #D4AF37;
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px white, 0 0 0 5px #1B7F7E;
+  }
+
+  /* Corner ornaments */
+  .ornament-corner::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #D4AF37 0%, transparent 50%);
+    opacity: 0.3;
+  }
+
+  [dir="ltr"] .ornament-corner::before {
+    right: auto;
+    left: -1px;
+    background: linear-gradient(-135deg, #D4AF37 0%, transparent 50%);
+  }
+
+  /* Decorative border */
+  .border-ornate {
+    border: 2px solid #1B7F7E;
+    box-shadow: inset 0 0 0 3px white, inset 0 0 0 4px #D4AF37;
+  }
+}
+
+/* ========================================
+   COMPONENT STYLES
+   ======================================== */
+
+/* Card styles with Islamic aesthetic */
+.card {
+  @apply bg-white rounded-xl shadow-lg p-6 border border-slate-200;
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #1B7F7E, #D4AF37, #1B7F7E);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.card:hover::before {
+  opacity: 1;
+}
+
+.card-hover {
+  @apply bg-white rounded-xl shadow-lg p-6 border border-slate-200;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.card-hover::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #1B7F7E, #D4AF37, #B85C3C);
+}
+
+.card-hover:hover {
+  @apply shadow-xl;
+  transform: translateY(-4px) scale(1.01);
+  border-color: #1B7F7E;
+}
+
+/* Heritage card style */
+.card-heritage {
+  @apply bg-white rounded-xl shadow-lg p-6;
+  border: 2px solid #E8D4B8;
+  background: linear-gradient(to bottom, #FFFBF5, #F5F0E8);
+  position: relative;
+}
+
+.card-heritage::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: url("data:image/svg+xml,%3Csvg width='200' height='60' viewBox='0 0 200 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 30 Q50 0 100 30 T200 30' fill='none' stroke='%23D4AF37' stroke-width='1' opacity='0.2'/%3E%3C/svg%3E") repeat-x;
+  pointer-events: none;
+}
+
+/* ========== BUTTON STYLES ========== */
+
+.btn-primary {
+  @apply px-6 py-3 rounded-lg font-semibold shadow-md;
+  background: linear-gradient(135deg, #10b981, #0d9488);
+  color: white;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.35);
+}
+
+.btn-primary:hover::before {
+  left: 100%;
+}
+
+.btn-primary:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.btn-secondary {
+  @apply bg-white text-emerald-600 px-6 py-3 rounded-lg font-semibold border-2 border-emerald-600;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+  @apply bg-emerald-50;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+}
+
+.btn-outline {
+  @apply bg-transparent text-slate-700 px-6 py-3 rounded-lg font-semibold border-2 border-slate-300;
+  transition: all 0.3s ease;
+}
+
+.btn-outline:hover {
+  @apply bg-slate-50 border-slate-400;
+}
+
+/* Heritage button style */
+.btn-heritage {
+  @apply px-6 py-3 rounded-lg font-semibold;
+  background: linear-gradient(135deg, #D4AF37, #B8860B);
+  color: #1A3A4A;
+  border: 2px solid #B8860B;
+  transition: all 0.3s ease;
+}
+
+.btn-heritage:hover {
+  background: linear-gradient(135deg, #F5D742, #D4AF37);
+  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+}
+
+/* ========================================
+   ANIMATION KEYFRAMES
+   ======================================== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+@keyframes glowPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(16, 185, 129, 0);
+  }
+}
+
+@keyframes floatGentle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes spinSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Animation classes */
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.5s ease-out;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.5s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.3s ease-out;
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+  background: linear-gradient(90deg, #f5f5f5, #e5e5e5, #f5f5f5);
+  background-size: 1000px 100%;
+}
+
+.animate-glow-pulse {
+  animation: glowPulse 2s infinite;
+}
+
+.animate-float {
+  animation: floatGentle 4s ease-in-out infinite;
+}
+
+.animate-spin-slow {
+  animation: spinSlow 8s linear infinite;
+}
+
+/* ========================================
+   LOADING STATES
+   ======================================== */
+
+.skeleton {
+  @apply bg-slate-200 rounded;
+  animation: shimmer 2s infinite;
+  background: linear-gradient(90deg, #e5e5e5, #f5f5f5, #e5e5e5);
+  background-size: 1000px 100%;
+}
+
+.skeleton-text {
+  @apply h-4 w-full rounded;
+}
+
+.skeleton-circle {
+  @apply rounded-full;
+}
+
+/* Arabic loading spinner */
+.loading-arabic {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e5e5e5;
+  border-top-color: #1B7F7E;
+  border-radius: 50%;
+  animation: spinSlow 1s linear infinite;
+}
+
+/* ========================================
+   FOCUS & ACCESSIBILITY
+   ======================================== */
+
+*:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+/* Skip link for accessibility */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #1B7F7E;
+  color: white;
+  padding: 8px 16px;
+  z-index: 100;
+  transition: top 0.3s;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* ========================================
+   RESPONSIVE ADJUSTMENTS
+   ======================================== */
+
+@media (max-width: 768px) {
+  [dir="rtl"] h1 {
+    font-size: 2rem;
+  }
+
+  [dir="rtl"] h2 {
+    font-size: 1.5rem;
+  }
+
+  [dir="rtl"] h3 {
+    font-size: 1.25rem;
+  }
+
+  .card-hover:hover {
+    transform: translateY(-2px) scale(1.005);
+  }
+}
+
+/* ========================================
+   PRINT STYLES
+   ======================================== */
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+  }
+
+  .card, .card-hover, .card-heritage {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+  }
+}

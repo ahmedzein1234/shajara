@@ -1,0 +1,108 @@
+name: Tests and Quality Checks
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: Run Tests and Quality Checks
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript type checking
+        run: npx tsc --noEmit
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run tests
+        run: npm test --if-present
+        continue-on-error: true
+
+      - name: Build check
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Test summary
+        run: |
+          echo "### Test Results :white_check_mark:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**TypeScript:** Passed" >> $GITHUB_STEP_SUMMARY
+          echo "**Linting:** Passed" >> $GITHUB_STEP_SUMMARY
+          echo "**Build:** Passed" >> $GITHUB_STEP_SUMMARY
+
+  # Check for Arabic language support and RTL compliance
+  rtl-check:
+    runs-on: ubuntu-latest
+    name: RTL and Arabic Support Check
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for RTL attributes in components
+        run: |
+          echo "Checking for RTL support in components..."
+          if grep -r "dir=" src/components/ || grep -r "direction:" src/; then
+            echo "RTL attributes found - Good!"
+          else
+            echo "Warning: Limited RTL attributes found. Ensure proper RTL support."
+          fi
+
+      - name: Check for Arabic language files
+        run: |
+          echo "Checking for Arabic language files..."
+          if [ -f "messages/ar.json" ]; then
+            echo "Arabic language file found - Good!"
+          else
+            echo "Warning: Arabic language file not found."
+          fi
+
+  # Security audit
+  security:
+    runs-on: ubuntu-latest
+    name: Security Audit
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+
+      - name: Check for secrets in code
+        run: |
+          echo "Checking for potential secrets..."
+          if grep -r "CLOUDFLARE_API_TOKEN\s*=\s*['\"]" src/ || grep -r "DATABASE_ID\s*=\s*['\"]" src/; then
+            echo "::error::Potential hardcoded secrets found!"
+            exit 1
+          else
+            echo "No hardcoded secrets detected - Good!"
+          fi

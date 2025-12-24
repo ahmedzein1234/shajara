@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question / سؤال
+    url: https://github.com/yourusername/shajara/discussions/new?category=q-a
+    about: Ask a question or get help / اطرح سؤالاً أو احصل على المساعدة
+  - name: Discussion / نقاش
+    url: https://github.com/yourusername/shajara/discussions
+    about: Join the community discussion / انضم إلى نقاش المجتمع
+  - name: Email Support / الدعم عبر البريد
+    url: mailto:support@shajara.app
+    about: Contact us directly via email / تواصل معنا مباشرة عبر البريد الإلكتروني
