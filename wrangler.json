@@ -4,7 +4,7 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
-  "pages_build_output_dir": ".worker-next/",
+  "pages_build_output_dir": ".vercel/output/static",
   "send_metrics": false,
   "d1_databases": [
     {

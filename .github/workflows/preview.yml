@@ -28,8 +28,8 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
-      - name: Build with OpenNext
-        run: npx opennextjs-cloudflare build
+      - name: Build with next-on-pages
+        run: npx @cloudflare/next-on-pages
         env:
           NODE_ENV: production
 
@@ -39,7 +39,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy .worker-next --project-name=shajara --branch=preview-${{ github.event.pull_request.number }}
+          command: pages deploy .vercel/output/static --project-name=shajara --branch=preview-${{ github.event.pull_request.number }}
         env:
           NODE_VERSION: '20'
 
