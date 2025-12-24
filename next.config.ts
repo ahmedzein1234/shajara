@@ -94,6 +94,7 @@ const nextConfig: NextConfig = {
 
   // Output configuration for Cloudflare
   output: 'standalone',
+  outputFileTracingRoot: process.cwd(),
 };
 
 export default withNextIntl(nextConfig);
