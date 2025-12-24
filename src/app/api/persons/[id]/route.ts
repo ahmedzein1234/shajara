@@ -152,3 +152,4 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 }
 
 // Removed edge runtime for OpenNext compatibility
+export const runtime = 'edge';

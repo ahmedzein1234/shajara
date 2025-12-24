@@ -273,3 +273,5 @@ export default async function PersonDetailPage({
     </div>
   );
 }
+
+export const runtime = 'edge';

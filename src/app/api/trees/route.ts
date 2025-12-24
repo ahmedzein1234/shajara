@@ -81,3 +81,4 @@ export async function POST(request: NextRequest) {
 }
 
 // Removed edge runtime for OpenNext compatibility
+export const runtime = 'edge';

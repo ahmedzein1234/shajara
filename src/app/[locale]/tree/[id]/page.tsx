@@ -244,3 +244,5 @@ function findRootPerson(
 
   return sortedRoots[0]?.id;
 }
+
+export const runtime = 'edge';

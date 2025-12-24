@@ -200,3 +200,5 @@ export default function NewTreePage() {
     </div>
   );
 }
+
+export const runtime = 'edge';
