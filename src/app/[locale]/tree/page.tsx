@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { TreeDeciduous, Plus, Users, Calendar, Eye, Quote } from 'lucide-react';
-import { getTrees } from '@/lib/db/actions';
-import { getPersonsByTreeIdLocal, getRelationshipsByTreeIdLocal } from '@/lib/db/local';
+import { getTrees, getPersonsByTreeId, getRelationshipsByTreeId } from '@/lib/db/actions';
 
 // Color palette for trees - Islamic inspired
 const treeColors = ['islamic', 'gold', 'terracotta', 'emerald', 'purple'];
@@ -16,18 +15,22 @@ export default async function TreeListPage({
   // Fetch trees from the database
   const trees = await getTrees();
 
-  // Get member and relationship counts for each tree
-  const treesWithStats = trees.map((tree, index) => {
-    const persons = getPersonsByTreeIdLocal(tree.id);
-    const relationships = getRelationshipsByTreeIdLocal(tree.id);
+  // Get member and relationship counts for each tree (fetch in parallel)
+  const treesWithStats = await Promise.all(
+    trees.map(async (tree, index) => {
+      const [persons, relationships] = await Promise.all([
+        getPersonsByTreeId(tree.id),
+        getRelationshipsByTreeId(tree.id),
+      ]);
 
-    return {
-      ...tree,
-      memberCount: persons.length,
-      relationshipCount: relationships.length,
-      color: treeColors[index % treeColors.length],
-    };
-  });
+      return {
+        ...tree,
+        memberCount: persons.length,
+        relationshipCount: relationships.length,
+        color: treeColors[index % treeColors.length],
+      };
+    })
+  );
 
   // Calculate totals
   const totalMembers = treesWithStats.reduce((sum, tree) => sum + tree.memberCount, 0);

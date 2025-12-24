@@ -232,4 +232,21 @@ export async function createRelationship(input: {
   };
 }
 
-export const runtime = 'edge';
+// =====================================================
+// QUERY ACTIONS (for tree listing page)
+// =====================================================
+
+export async function getPersonsByTreeId(treeId: string): Promise<Person[]> {
+  const db = getDB();
+  const stmt = db.prepare('SELECT * FROM persons WHERE tree_id = ? ORDER BY created_at DESC');
+  const result = await stmt.bind(treeId).all<DbPerson>();
+  return result.results.map(dbToPerson);
+}
+
+export async function getRelationshipsByTreeId(treeId: string): Promise<Relationship[]> {
+  const db = getDB();
+  const stmt = db.prepare('SELECT * FROM relationships WHERE tree_id = ? ORDER BY created_at DESC');
+  const result = await stmt.bind(treeId).all<Relationship>();
+  return result.results;
+}
+
