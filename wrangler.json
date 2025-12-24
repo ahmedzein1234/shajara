@@ -10,7 +10,7 @@
     {
       "binding": "DB",
       "database_name": "shajara-db",
-      "database_id": "YOUR_D1_DATABASE_ID",
+      "database_id": "bddc8a77-47d1-43be-8327-c8cbc41a61b9",
       "migrations_dir": "./migrations"
     }
   ],
