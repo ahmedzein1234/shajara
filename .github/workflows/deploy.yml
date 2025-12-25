@@ -32,6 +32,13 @@ jobs:
         env:
           NODE_ENV: production
 
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudflare-pages-build
+          path: .vercel/output/static
+          retention-days: 1
+
       - name: Apply D1 migrations
         run: npx wrangler d1 migrations apply shajara-db --remote
         env:
