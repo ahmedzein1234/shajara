@@ -1,6 +1,6 @@
 /**
  * Single Tree API Route
- * GET /api/trees/[id] - Get tree with all persons
+ * GET /api/trees/[id] - Get tree with all persons (with KV caching)
  * PUT /api/trees/[id] - Update tree metadata
  * DELETE /api/trees/[id] - Delete tree
  */
@@ -9,7 +9,7 @@ import { NextRequest } from 'next/server';
 import {
   getDatabase,
   getTreeById,
-  getPersonsByTreeId,
+  getTreeWithRelationships,
   updateTree,
   deleteTree,
   verifyTreeOwnership,
@@ -24,15 +24,14 @@ import {
   ForbiddenError,
   UnauthorizedError,
 } from '@/lib/api/errors';
-
-// Mock user ID - replace with actual authentication
-function getCurrentUserId(request: NextRequest): string | null {
-  const authHeader = request.headers.get('x-user-id');
-  const url = new URL(request.url);
-  const queryUserId = url.searchParams.get('user_id');
-
-  return authHeader || queryUserId;
-}
+import { getCurrentUserId } from '@/lib/auth/session';
+import {
+  getCachedTree,
+  setCachedTree,
+  invalidateTreeCache,
+  getKVFromEnv,
+  type CachedTreeData,
+} from '@/lib/cache/kv';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -40,32 +39,66 @@ interface RouteContext {
 
 /**
  * GET /api/trees/[id]
- * Get tree metadata and all persons in the tree
+ * Get tree metadata with all persons and relationships
+ * Uses KV caching for improved performance (cache hit returns in ~10ms vs ~200ms for DB)
  */
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
     const db = getDatabase(request);
+    const env = (request as unknown as { env?: unknown }).env;
+    const kv = getKVFromEnv(env);
 
-    const tree = await getTreeById(db, id);
-    if (!tree) {
+    // Check if tree is public or user is owner (this check is fast)
+    const userId = await getCurrentUserId(db);
+
+    // Try to get from cache first
+    const cached = await getCachedTree(kv, id);
+    if (cached) {
+      // Verify access for cached data
+      const isOwner = userId && (await verifyTreeOwnership(db, id, userId));
+      if (!cached.tree.is_public && !isOwner) {
+        throw new ForbiddenError('You do not have access to this tree');
+      }
+
+      // Return cached data with cache hit indicator
+      return successResponse({
+        ...cached,
+        _cached: true,
+        _cachedAt: cached.cachedAt,
+      });
+    }
+
+    // Cache miss - fetch from database
+    const treeData = await getTreeWithRelationships(db, id);
+    if (!treeData) {
       throw new NotFoundError('Tree not found');
     }
 
-    // Check if tree is public or user is owner
-    const userId = getCurrentUserId(request);
+    // Verify access
     const isOwner = userId && (await verifyTreeOwnership(db, id, userId));
-
-    if (!tree.is_public && !isOwner) {
+    if (!treeData.tree.is_public && !isOwner) {
       throw new ForbiddenError('You do not have access to this tree');
     }
 
-    // Get all persons in the tree
-    const persons = await getPersonsByTreeId(db, id);
+    // Prepare response data
+    const responseData: Omit<CachedTreeData, 'cachedAt'> = {
+      tree: treeData.tree,
+      persons: treeData.persons,
+      relationships: treeData.relationships,
+      relationshipMaps: {
+        parents: Object.fromEntries(treeData.parentMap),
+        children: Object.fromEntries(treeData.childMap),
+        spouses: Object.fromEntries(treeData.spouseMap),
+      },
+    };
+
+    // Cache the result for future requests (non-blocking)
+    setCachedTree(kv, id, responseData).catch(console.error);
 
     return successResponse({
-      tree,
-      persons,
+      ...responseData,
+      _cached: false,
     });
   } catch (error) {
     return handleError(error);
@@ -85,13 +118,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
  */
 export async function PUT(request: NextRequest, context: RouteContext) {
   try {
-    const userId = getCurrentUserId(request);
-    if (!userId) {
-      throw new UnauthorizedError('User ID is required');
-    }
-
     const { id } = await context.params;
     const db = getDatabase(request);
+    const env = (request as unknown as { env?: unknown }).env;
+    const kv = getKVFromEnv(env);
+    const userId = await getCurrentUserId(db);
+    if (!userId) {
+      throw new UnauthorizedError('Authentication required');
+    }
 
     // Verify ownership
     const isOwner = await verifyTreeOwnership(db, id, userId);
@@ -108,6 +142,9 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       throw new NotFoundError('Tree not found');
     }
 
+    // Invalidate cache after update (non-blocking)
+    invalidateTreeCache(kv, id).catch(console.error);
+
     return successResponse(updatedTree);
   } catch (error) {
     return handleError(error);
@@ -120,13 +157,14 @@ export async function PUT(request: NextRequest, context: RouteContext) {
  */
 export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
-    const userId = getCurrentUserId(request);
-    if (!userId) {
-      throw new UnauthorizedError('User ID is required');
-    }
-
     const { id } = await context.params;
     const db = getDatabase(request);
+    const env = (request as unknown as { env?: unknown }).env;
+    const kv = getKVFromEnv(env);
+    const userId = await getCurrentUserId(db);
+    if (!userId) {
+      throw new UnauthorizedError('Authentication required');
+    }
 
     // Verify ownership
     const isOwner = await verifyTreeOwnership(db, id, userId);
@@ -140,11 +178,11 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       throw new NotFoundError('Tree not found');
     }
 
+    // Invalidate cache after delete (non-blocking)
+    invalidateTreeCache(kv, id).catch(console.error);
+
     return noContentResponse();
   } catch (error) {
     return handleError(error);
   }
 }
-
-// Removed edge runtime for OpenNext compatibility
-export const runtime = 'edge';

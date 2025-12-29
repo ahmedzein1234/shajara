@@ -4,6 +4,7 @@
  */
 
 import { NextRequest } from 'next/server';
+import type { D1Database } from '@cloudflare/workers-types';
 import { validateUploadFile } from '@/lib/api/validation';
 import {
   handleError,
@@ -11,19 +12,11 @@ import {
   UnauthorizedError,
   BadRequestError,
 } from '@/lib/api/errors';
+import { getCurrentUserId } from '@/lib/auth/session';
 
 // R2Bucket interface for type safety
 interface R2Bucket {
   put(key: string, value: ArrayBuffer, options?: { httpMetadata?: { contentType?: string } }): Promise<void>;
-}
-
-// Mock user ID - replace with actual authentication
-function getCurrentUserId(request: NextRequest): string | null {
-  const authHeader = request.headers.get('x-user-id');
-  const url = new URL(request.url);
-  const queryUserId = url.searchParams.get('user_id');
-
-  return authHeader || queryUserId;
 }
 
 // Get R2 bucket from request context
@@ -63,11 +56,21 @@ function generateFileKey(userId: string, filename: string): string {
  *   }
  * }
  */
+// Get D1 database from request context
+function getDatabase(request: NextRequest): D1Database {
+  const env = (request as any).env;
+  if (!env?.DB) {
+    throw new Error('D1 database not configured');
+  }
+  return env.DB;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const userId = getCurrentUserId(request);
+    const db = getDatabase(request);
+    const userId = await getCurrentUserId(db);
     if (!userId) {
-      throw new UnauthorizedError('User ID is required');
+      throw new UnauthorizedError('Authentication required');
     }
 
     // Parse form data
@@ -110,6 +113,3 @@ export async function POST(request: NextRequest) {
     return handleError(error);
   }
 }
-
-// Removed edge runtime for OpenNext compatibility
-export const runtime = 'edge';

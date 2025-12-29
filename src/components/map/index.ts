@@ -4,6 +4,7 @@
  */
 
 export { FamilyMap } from './FamilyMap';
+export { LazyFamilyMap } from './LazyFamilyMap';  // Use this for lazy loading (saves ~800KB initial bundle)
 export { MigrationPath } from './MigrationPath';
 export { LocationPicker, LocationPickerWithMap } from './LocationPicker';
 export { MapControls } from './MapControls';

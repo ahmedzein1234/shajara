@@ -17,6 +17,7 @@ import type {
   UpdatePersonInput,
 } from '../db/schema';
 import { dbToTree, dbToPerson, treeToDB, personToDB } from '../db/schema';
+import { buildSafeUpdate } from '../db/safe-update';
 
 // =====================================================
 // DATABASE CONTEXT
@@ -223,32 +224,25 @@ export async function updatePerson(
   id: string,
   input: UpdatePersonInput
 ): Promise<Person | null> {
-  const updates: string[] = [];
-  const values: any[] = [];
-
   const dbInput = personToDB(input);
 
-  // Build dynamic update query
-  for (const [key, value] of Object.entries(dbInput)) {
-    if (value !== undefined) {
-      updates.push(`${key} = ?`);
-      values.push(value);
-    }
-  }
+  // Add updated_at to input
+  const now = Math.floor(Date.now() / 1000);
+  const inputWithTimestamp = { ...dbInput, updated_at: now };
 
-  if (updates.length === 0) {
+  // Use safe update helper to validate column names
+  const safeUpdate = buildSafeUpdate('persons', inputWithTimestamp);
+
+  if (!safeUpdate) {
     return getPersonById(db, id);
   }
 
-  const now = Math.floor(Date.now() / 1000);
-  updates.push('updated_at = ?');
-  values.push(now);
-
+  const { setParts, values } = safeUpdate;
   values.push(id);
 
   const stmt = db.prepare(`
     UPDATE persons
-    SET ${updates.join(', ')}
+    SET ${setParts.join(', ')}
     WHERE id = ?
   `);
 
@@ -466,4 +460,280 @@ export async function verifyRelationshipOwnership(
   const result = await stmt.bind(relationshipId).first<{ user_id: string }>();
 
   return result?.user_id === userId;
+}
+
+// =====================================================
+// OPTIMIZED TREE LOADING (2 QUERIES INSTEAD OF N+1)
+// =====================================================
+
+/**
+ * Person with pre-computed relationship data
+ */
+export interface PersonWithRelations extends Person {
+  parentIds: string[];
+  childIds: string[];
+  spouseIds: string[];
+}
+
+/**
+ * Complete tree data with all persons and relationships
+ * Loaded in just 2 queries instead of N+1
+ */
+export interface TreeData {
+  tree: Tree;
+  persons: Person[];
+  relationships: Relationship[];
+  // Pre-computed maps for efficient traversal
+  personMap: Map<string, Person>;
+  parentMap: Map<string, string[]>;    // personId -> parentIds
+  childMap: Map<string, string[]>;     // personId -> childIds
+  spouseMap: Map<string, string[]>;    // personId -> spouseIds
+}
+
+/**
+ * Get complete tree data with all persons and relationships in 2 queries
+ * This replaces the N+1 query pattern used by getAncestors/getDescendants
+ */
+export async function getTreeWithRelationships(
+  db: D1Database,
+  treeId: string
+): Promise<TreeData | null> {
+  // Query 1: Get tree
+  const tree = await getTreeById(db, treeId);
+  if (!tree) {
+    return null;
+  }
+
+  // Query 2: Get all persons (batch)
+  const persons = await getPersonsByTreeId(db, treeId);
+
+  // Query 3: Get all relationships (batch)
+  const relationships = await getRelationshipsByTreeId(db, treeId);
+
+  // Build person lookup map
+  const personMap = new Map<string, Person>();
+  for (const person of persons) {
+    personMap.set(person.id, person);
+  }
+
+  // Build relationship maps
+  const parentMap = new Map<string, string[]>();
+  const childMap = new Map<string, string[]>();
+  const spouseMap = new Map<string, string[]>();
+
+  // Initialize empty arrays for all persons
+  for (const person of persons) {
+    parentMap.set(person.id, []);
+    childMap.set(person.id, []);
+    spouseMap.set(person.id, []);
+  }
+
+  // Populate relationship maps from relationships
+  for (const rel of relationships) {
+    if (rel.relationship_type === 'parent') {
+      // person1 is parent of person2
+      // Add person1 to person2's parents
+      const parents = parentMap.get(rel.person2_id) || [];
+      if (!parents.includes(rel.person1_id)) {
+        parents.push(rel.person1_id);
+        parentMap.set(rel.person2_id, parents);
+      }
+
+      // Add person2 to person1's children
+      const children = childMap.get(rel.person1_id) || [];
+      if (!children.includes(rel.person2_id)) {
+        children.push(rel.person2_id);
+        childMap.set(rel.person1_id, children);
+      }
+    } else if (rel.relationship_type === 'spouse') {
+      // Bidirectional spouse relationship
+      const spouses1 = spouseMap.get(rel.person1_id) || [];
+      if (!spouses1.includes(rel.person2_id)) {
+        spouses1.push(rel.person2_id);
+        spouseMap.set(rel.person1_id, spouses1);
+      }
+
+      const spouses2 = spouseMap.get(rel.person2_id) || [];
+      if (!spouses2.includes(rel.person1_id)) {
+        spouses2.push(rel.person1_id);
+        spouseMap.set(rel.person2_id, spouses2);
+      }
+    }
+  }
+
+  return {
+    tree,
+    persons,
+    relationships,
+    personMap,
+    parentMap,
+    childMap,
+    spouseMap,
+  };
+}
+
+/**
+ * Get ancestors using pre-loaded tree data (no additional queries)
+ */
+export function getAncestorsFromTreeData(
+  treeData: TreeData,
+  personId: string,
+  maxGenerations: number = 10
+): Person[] {
+  const ancestors: Person[] = [];
+  const visited = new Set<string>();
+  let currentGeneration = [personId];
+
+  for (let i = 0; i < maxGenerations; i++) {
+    if (currentGeneration.length === 0) break;
+
+    const nextGeneration: string[] = [];
+
+    for (const currentId of currentGeneration) {
+      if (visited.has(currentId)) continue;
+      visited.add(currentId);
+
+      const parentIds = treeData.parentMap.get(currentId) || [];
+      for (const parentId of parentIds) {
+        const parent = treeData.personMap.get(parentId);
+        if (parent && !visited.has(parentId)) {
+          ancestors.push(parent);
+          nextGeneration.push(parentId);
+        }
+      }
+    }
+
+    currentGeneration = nextGeneration;
+  }
+
+  return ancestors;
+}
+
+/**
+ * Get descendants using pre-loaded tree data (no additional queries)
+ */
+export function getDescendantsFromTreeData(
+  treeData: TreeData,
+  personId: string,
+  maxGenerations: number = 10
+): Person[] {
+  const descendants: Person[] = [];
+  const visited = new Set<string>();
+  let currentGeneration = [personId];
+
+  for (let i = 0; i < maxGenerations; i++) {
+    if (currentGeneration.length === 0) break;
+
+    const nextGeneration: string[] = [];
+
+    for (const currentId of currentGeneration) {
+      if (visited.has(currentId)) continue;
+      visited.add(currentId);
+
+      const childIds = treeData.childMap.get(currentId) || [];
+      for (const childId of childIds) {
+        const child = treeData.personMap.get(childId);
+        if (child && !visited.has(childId)) {
+          descendants.push(child);
+          nextGeneration.push(childId);
+        }
+      }
+    }
+
+    currentGeneration = nextGeneration;
+  }
+
+  return descendants;
+}
+
+/**
+ * Get siblings using pre-loaded tree data (no additional queries)
+ */
+export function getSiblingsFromTreeData(
+  treeData: TreeData,
+  personId: string
+): Person[] {
+  const parentIds = treeData.parentMap.get(personId) || [];
+  if (parentIds.length === 0) return [];
+
+  const siblingIds = new Set<string>();
+
+  for (const parentId of parentIds) {
+    const childIds = treeData.childMap.get(parentId) || [];
+    for (const childId of childIds) {
+      if (childId !== personId) {
+        siblingIds.add(childId);
+      }
+    }
+  }
+
+  const siblings: Person[] = [];
+  for (const siblingId of siblingIds) {
+    const sibling = treeData.personMap.get(siblingId);
+    if (sibling) {
+      siblings.push(sibling);
+    }
+  }
+
+  return siblings;
+}
+
+/**
+ * Get spouses using pre-loaded tree data (no additional queries)
+ */
+export function getSpousesFromTreeData(
+  treeData: TreeData,
+  personId: string
+): Person[] {
+  const spouseIds = treeData.spouseMap.get(personId) || [];
+  const spouses: Person[] = [];
+
+  for (const spouseId of spouseIds) {
+    const spouse = treeData.personMap.get(spouseId);
+    if (spouse) {
+      spouses.push(spouse);
+    }
+  }
+
+  return spouses;
+}
+
+/**
+ * Get parents using pre-loaded tree data (no additional queries)
+ */
+export function getParentsFromTreeData(
+  treeData: TreeData,
+  personId: string
+): Person[] {
+  const parentIds = treeData.parentMap.get(personId) || [];
+  const parents: Person[] = [];
+
+  for (const parentId of parentIds) {
+    const parent = treeData.personMap.get(parentId);
+    if (parent) {
+      parents.push(parent);
+    }
+  }
+
+  return parents;
+}
+
+/**
+ * Get children using pre-loaded tree data (no additional queries)
+ */
+export function getChildrenFromTreeData(
+  treeData: TreeData,
+  personId: string
+): Person[] {
+  const childIds = treeData.childMap.get(personId) || [];
+  const children: Person[] = [];
+
+  for (const childId of childIds) {
+    const child = treeData.personMap.get(childId);
+    if (child) {
+      children.push(child);
+    }
+  }
+
+  return children;
 }

@@ -40,10 +40,11 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         'bg-red-600 text-white hover:bg-red-700 active:bg-red-800 dark:bg-red-500 dark:hover:bg-red-600',
     };
 
+    // WCAG 2.1 AA: Touch targets should be at least 44x44px
     const sizeStyles = {
-      sm: 'h-8 px-3 text-sm gap-1.5',
-      md: 'h-10 px-4 text-base gap-2',
-      lg: 'h-12 px-6 text-lg gap-2.5',
+      sm: 'min-h-[44px] min-w-[44px] px-3 text-sm gap-1.5',
+      md: 'min-h-[44px] min-w-[44px] px-4 text-base gap-2',
+      lg: 'min-h-[48px] min-w-[48px] px-6 text-lg gap-2.5',
     };
 
     return (

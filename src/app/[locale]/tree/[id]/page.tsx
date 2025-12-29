@@ -9,9 +9,13 @@ import {
   Download,
   Search,
   Filter,
-  Quote
+  Quote,
+  Link2,
+  Settings
 } from 'lucide-react';
 import { getTreeWithData } from '@/lib/db/actions';
+import { getSession } from '@/lib/auth/actions';
+import { getUserAccessLevel } from '@/lib/privacy/actions';
 import TreeViewClient from './TreeViewClient';
 
 export default async function TreeViewPage({
@@ -28,6 +32,11 @@ export default async function TreeViewPage({
   if (!tree) {
     notFound();
   }
+
+  // Check user access level for showing settings
+  const session = await getSession();
+  const access = session?.user ? await getUserAccessLevel(id, session.user.id) : { level: null, isOwner: false, isBlocked: false };
+  const canManageTree = access.isOwner || access.level === 'admin' || access.level === 'editor';
 
   // Find the root person (person with no parents, or oldest person)
   const rootPersonId = persons.length > 0 ? findRootPerson(persons, relationships) : undefined;
@@ -66,6 +75,12 @@ export default async function TreeViewPage({
                 <Download className="w-4 h-4" />
                 <span>{locale === 'ar' ? 'تصدير' : 'Export'}</span>
               </button>
+              {canManageTree && (
+                <Link href={`/${locale}/tree/${id}/settings`} className="btn-outline flex items-center gap-2">
+                  <Settings className="w-4 h-4" />
+                  <span>{locale === 'ar' ? 'إعدادات' : 'Settings'}</span>
+                </Link>
+              )}
               <Link href={`/${locale}/tree/${id}/edit`} className="btn-secondary flex items-center gap-2">
                 <Edit className="w-4 h-4" />
                 <span>{locale === 'ar' ? 'تعديل' : 'Edit'}</span>
@@ -97,26 +112,26 @@ export default async function TreeViewPage({
                       <User className="w-16 h-16 text-white" />
                     </div>
                     <h3 className="text-2xl font-bold text-slate-900 mb-4 font-display">
-                      {locale === 'ar' ? 'الشجرة تنتظر أول الأسماء' : 'No Members Yet'}
+                      {locale === 'ar' ? 'ابدأ رحلة التعرف على عائلتك' : 'Start Discovering Your Family'}
                     </h3>
                     <p className="text-slate-600 mb-8 max-w-md leading-relaxed">
                       {locale === 'ar'
-                        ? 'كل عائلةٍ عظيمة بدأت باسمٍ واحد. ابدأ بإضافة نفسك، أو والدك، أو جدك. ومن اسمٍ واحد ستنمو الشجرة وتتفرع أغصانها.'
-                        : 'Start by adding the first member to your family tree'}
+                        ? 'كل رحلة تبدأ بخطوة، وكل عائلة تبدأ باسم. أضف نفسك أو والديك أو أجدادك، وشاهد كيف تتفرع شجرة عائلتك وتتواصل أغصانها.'
+                        : 'Every journey begins with a step, and every family begins with a name. Add yourself, your parents, or grandparents, and watch your family tree grow and connect.'}
                     </p>
                     <Link
-                      href={`/${locale}/person/new?treeId=${id}`}
+                      href={`/${locale}/tree/${id}/person/new`}
                       className="btn-primary inline-flex items-center gap-2"
                     >
                       <Plus className="w-5 h-5" />
-                      <span>{locale === 'ar' ? 'أضف أول فرد' : 'Add Person'}</span>
+                      <span>{locale === 'ar' ? 'ابدأ الآن' : 'Start Now'}</span>
                     </Link>
 
                     {/* Arabic Proverb */}
                     {locale === 'ar' && (
                       <p className="mt-8 text-gold-400 text-sm font-display italic flex items-center justify-center gap-2">
                         <Quote className="w-4 h-4" />
-                        الأصول لا تُنسى
+                        صِلَةُ الرَّحِم تزيدُ في العُمر
                       </p>
                     )}
                   </div>
@@ -144,14 +159,24 @@ export default async function TreeViewPage({
                 </button>
               </div>
 
-              {/* Add Person Button */}
-              <Link
-                href={`/${locale}/person/new?treeId=${id}`}
-                className="btn-primary w-full flex items-center justify-center gap-2 mb-6"
-              >
-                <Plus className="w-5 h-5" />
-                <span>{locale === 'ar' ? 'إضافة فرد' : 'Add Person'}</span>
-              </Link>
+              {/* Action Buttons */}
+              <div className="space-y-3 mb-6">
+                <Link
+                  href={`/${locale}/tree/${id}/person/new`}
+                  className="btn-primary w-full flex items-center justify-center gap-2"
+                  data-tour="add-person"
+                >
+                  <Plus className="w-5 h-5" />
+                  <span>{locale === 'ar' ? 'أضف فرداً من العائلة' : 'Add Family Member'}</span>
+                </Link>
+                <Link
+                  href={`/${locale}/tree/${id}/relationship/new`}
+                  className="btn-secondary w-full flex items-center justify-center gap-2"
+                >
+                  <Link2 className="w-5 h-5" />
+                  <span>{locale === 'ar' ? 'اربط بين الأفراد' : 'Connect Members'}</span>
+                </Link>
+              </div>
 
               {/* Person List */}
               <div>
@@ -244,5 +269,3 @@ function findRootPerson(
 
   return sortedRoots[0]?.id;
 }
-
-export const runtime = 'edge';

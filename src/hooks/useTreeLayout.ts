@@ -2,9 +2,11 @@
  * useTreeLayout Hook
  * Calculates positions for family tree nodes using a hierarchical layout algorithm
  * Supports RTL layout and multiple spouses
+ *
+ * Performance optimized with memoization
  */
 
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { Person, Relationship } from '@/lib/db/schema';
 import {
   TreeNode,
@@ -16,17 +18,22 @@ import {
   SpouseInfo,
 } from '@/types/tree';
 
+// Import card dimensions from PersonNode for consistency
+// These values should match the PersonNode component
+const CARD_WIDTH = 220;
+const CARD_HEIGHT = 140;
+
 /**
- * Default layout configuration
+ * Default layout configuration - updated for modern cards
  */
 const DEFAULT_CONFIG: TreeLayoutConfig = {
   layoutType: 'descendants',
   direction: 'rtl', // Arabic default
-  nodeWidth: 200,
-  nodeHeight: 120,
-  horizontalSpacing: 60,
-  verticalSpacing: 100,
-  spouseSpacing: 40,
+  nodeWidth: CARD_WIDTH,
+  nodeHeight: CARD_HEIGHT,
+  horizontalSpacing: 50, // Reduced for better density
+  verticalSpacing: 80,   // Reduced for better vertical space usage
+  spouseSpacing: 30,     // Tighter spouse spacing
   showSiblings: true,
 };
 
@@ -41,7 +48,10 @@ export function useTreeLayout(
   const fullConfig = useMemo(() => ({ ...DEFAULT_CONFIG, ...config }), [config]);
 
   return useMemo(() => {
-    if (!treeData.persons.length) return null;
+    // Safety check for undefined or empty persons
+    if (!treeData?.persons || !Array.isArray(treeData.persons) || treeData.persons.length === 0) {
+      return null;
+    }
 
     try {
       // Build tree structure from raw data
@@ -81,6 +91,11 @@ function buildTreeStructure(data: TreeData, options: BuildTreeOptions): TreeNode
   const { persons, relationships } = data;
   const nodeMap = new Map<string, TreeNode>();
 
+  // Safety check - return empty if no data
+  if (!persons || !Array.isArray(persons) || persons.length === 0) {
+    return [];
+  }
+
   // Create nodes for all persons
   persons.forEach((person) => {
     nodeMap.set(person.id, {
@@ -98,8 +113,9 @@ function buildTreeStructure(data: TreeData, options: BuildTreeOptions): TreeNode
     });
   });
 
-  // Build relationships
-  relationships.forEach((rel) => {
+  // Build relationships (with safety check)
+  const safeRelationships = relationships || [];
+  safeRelationships.forEach((rel) => {
     const person1 = nodeMap.get(rel.person1_id);
     const person2 = nodeMap.get(rel.person2_id);
 
@@ -190,35 +206,42 @@ function assignLevels(node: TreeNode, level: number, visited = new Set<string>()
 
   node.level = level;
 
-  // Process children
-  node.children.forEach((child) => assignLevels(child, level + 1, visited));
+  // Process children (with safety check)
+  if (node.children) {
+    node.children.forEach((child) => assignLevels(child, level + 1, visited));
+  }
 
-  // Process spouses at same level
-  node.spouses.forEach((spouse) => assignLevels(spouse.node, level, visited));
+  // Process spouses at same level (with safety check)
+  if (node.spouses) {
+    node.spouses.forEach((spouse) => assignLevels(spouse.node, level, visited));
+  }
 }
 
 /**
  * Calculate width of subtree for each node
  */
 function calculateSubtreeWidths(node: TreeNode, config: TreeLayoutConfig): number {
-  if (node.isCollapsed || node.children.length === 0) {
+  const children = node.children || [];
+  const spouses = node.spouses || [];
+
+  if (node.isCollapsed || children.length === 0) {
     node.subtreeWidth = config.nodeWidth;
     return config.nodeWidth;
   }
 
   // Calculate total width needed for all children
   let totalWidth = 0;
-  node.children.forEach((child) => {
+  children.forEach((child) => {
     totalWidth += calculateSubtreeWidths(child, config);
   });
 
   // Add spacing between children
-  if (node.children.length > 1) {
-    totalWidth += (node.children.length - 1) * config.horizontalSpacing;
+  if (children.length > 1) {
+    totalWidth += (children.length - 1) * config.horizontalSpacing;
   }
 
   // Account for spouses
-  const spouseWidth = node.spouses.length * (config.nodeWidth + config.spouseSpacing);
+  const spouseWidth = spouses.length * (config.nodeWidth + config.spouseSpacing);
   node.subtreeWidth = Math.max(totalWidth, config.nodeWidth + spouseWidth);
 
   return node.subtreeWidth;
@@ -237,13 +260,16 @@ function positionNodes(
   if (visited.has(node.id)) return;
   visited.add(node.id);
 
+  const children = node.children || [];
+  const spouses = node.spouses || [];
+
   // Position this node
   node.x = x;
   node.y = y;
 
   // Position spouses next to this person
   let spouseX = x;
-  node.spouses.forEach((spouse, index) => {
+  spouses.forEach((spouse, index) => {
     spouseX += config.nodeWidth + config.spouseSpacing;
     spouse.node.x = spouseX;
     spouse.node.y = y;
@@ -251,22 +277,22 @@ function positionNodes(
   });
 
   // Position children below
-  if (node.children.length > 0 && !node.isCollapsed) {
+  if (children.length > 0 && !node.isCollapsed) {
     const childrenY = y + config.nodeHeight + config.verticalSpacing;
 
     // Calculate starting X for children (center them under parent)
-    const totalChildrenWidth = node.children.reduce(
+    const totalChildrenWidth = children.reduce(
       (sum, child, idx) =>
-        sum + child.subtreeWidth + (idx > 0 ? config.horizontalSpacing : 0),
+        sum + (child.subtreeWidth || config.nodeWidth) + (idx > 0 ? config.horizontalSpacing : 0),
       0
     );
 
-    let childX = x + node.subtreeWidth / 2 - totalChildrenWidth / 2;
+    let childX = x + (node.subtreeWidth || config.nodeWidth) / 2 - totalChildrenWidth / 2;
 
     // Position each child
-    node.children.forEach((child) => {
+    children.forEach((child) => {
       positionNodes(child, childX, childrenY, config, visited);
-      childX += child.subtreeWidth + config.horizontalSpacing;
+      childX += (child.subtreeWidth || config.nodeWidth) + config.horizontalSpacing;
     });
   }
 }
@@ -279,8 +305,11 @@ function generateConnections(nodes: TreeNode[], config: TreeLayoutConfig): Conne
   const processedPairs = new Set<string>();
 
   nodes.forEach((node) => {
+    const children = node.children || [];
+    const spouses = node.spouses || [];
+
     // Parent-child connections
-    node.children.forEach((child) => {
+    children.forEach((child) => {
       const pairKey = `${node.id}-${child.id}`;
       if (processedPairs.has(pairKey)) return;
       processedPairs.add(pairKey);
@@ -298,7 +327,7 @@ function generateConnections(nodes: TreeNode[], config: TreeLayoutConfig): Conne
     });
 
     // Spouse connections
-    node.spouses.forEach((spouse) => {
+    spouses.forEach((spouse) => {
       const pairKey = [node.id, spouse.node.id].sort().join('-');
       if (processedPairs.has(pairKey)) return;
       processedPairs.add(pairKey);
@@ -324,6 +353,7 @@ function generateConnections(nodes: TreeNode[], config: TreeLayoutConfig): Conne
 
 /**
  * Generate SVG path for parent-child connection
+ * Uses smooth bezier curves for a more elegant look
  */
 function generateParentChildPath(parent: TreeNode, child: TreeNode, config: TreeLayoutConfig): string {
   const startX = parent.x + config.nodeWidth / 2;
@@ -331,14 +361,38 @@ function generateParentChildPath(parent: TreeNode, child: TreeNode, config: Tree
   const endX = child.x + config.nodeWidth / 2;
   const endY = child.y;
 
+  // Calculate control points for smooth S-curve
   const midY = (startY + endY) / 2;
+  const verticalDistance = endY - startY;
 
-  // Curved path
-  return `M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
+  // Use cubic bezier for smooth curves
+  // Control point 1: below parent, same X
+  // Control point 2: above child, same X
+  const cp1Y = startY + verticalDistance * 0.4;
+  const cp2Y = endY - verticalDistance * 0.4;
+
+  // If horizontal distance is small, use simple vertical curve
+  if (Math.abs(endX - startX) < 50) {
+    return `M ${startX} ${startY} C ${startX} ${cp1Y}, ${endX} ${cp2Y}, ${endX} ${endY}`;
+  }
+
+  // For larger horizontal distances, use stepped curve with rounded corners
+  const cornerRadius = Math.min(20, Math.abs(endX - startX) / 4, verticalDistance / 4);
+
+  // Path: down from parent, curve to horizontal, horizontal line, curve down, down to child
+  const horizontalY = midY;
+
+  return `M ${startX} ${startY}
+          L ${startX} ${horizontalY - cornerRadius}
+          Q ${startX} ${horizontalY}, ${startX + Math.sign(endX - startX) * cornerRadius} ${horizontalY}
+          L ${endX - Math.sign(endX - startX) * cornerRadius} ${horizontalY}
+          Q ${endX} ${horizontalY}, ${endX} ${horizontalY + cornerRadius}
+          L ${endX} ${endY}`;
 }
 
 /**
  * Generate SVG path for spouse connection
+ * Uses a subtle curved line with optional heart/ring indicator position
  */
 function generateSpousePath(person1: TreeNode, person2: TreeNode, config: TreeLayoutConfig): string {
   const x1 = person1.x + config.nodeWidth;
@@ -346,8 +400,11 @@ function generateSpousePath(person1: TreeNode, person2: TreeNode, config: TreeLa
   const x2 = person2.x;
   const y2 = person2.y + config.nodeHeight / 2;
 
-  // Straight horizontal line
-  return `M ${x1} ${y1} L ${x2} ${y2}`;
+  // Add a subtle curve for visual interest
+  const midX = (x1 + x2) / 2;
+  const curveHeight = 5; // Subtle upward curve
+
+  return `M ${x1} ${y1} Q ${midX} ${y1 - curveHeight}, ${x2} ${y2}`;
 }
 
 /**

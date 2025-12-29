@@ -14,18 +14,7 @@ import {
   parseJsonBody,
   UnauthorizedError,
 } from '@/lib/api/errors';
-
-// Mock user ID - replace with actual authentication
-// TODO: Implement proper authentication with Cloudflare Access or custom auth
-function getCurrentUserId(request: NextRequest): string | null {
-  // For now, return a mock user ID from header or query param
-  // In production, this should verify a JWT token or session
-  const authHeader = request.headers.get('x-user-id');
-  const url = new URL(request.url);
-  const queryUserId = url.searchParams.get('user_id');
-
-  return authHeader || queryUserId;
-}
+import { getCurrentUserId } from '@/lib/auth/session';
 
 /**
  * GET /api/trees
@@ -33,12 +22,12 @@ function getCurrentUserId(request: NextRequest): string | null {
  */
 export async function GET(request: NextRequest) {
   try {
-    const userId = getCurrentUserId(request);
+    const db = getDatabase(request);
+    const userId = await getCurrentUserId(db);
     if (!userId) {
-      throw new UnauthorizedError('User ID is required');
+      throw new UnauthorizedError('Authentication required');
     }
 
-    const db = getDatabase(request);
     const trees = await getTreesByUserId(db, userId);
 
     return successResponse(trees);
@@ -60,9 +49,10 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const userId = getCurrentUserId(request);
+    const db = getDatabase(request);
+    const userId = await getCurrentUserId(db);
     if (!userId) {
-      throw new UnauthorizedError('User ID is required');
+      throw new UnauthorizedError('Authentication required');
     }
 
     const body = await parseJsonBody(request) as Record<string, unknown>;
@@ -71,7 +61,6 @@ export async function POST(request: NextRequest) {
     const inputWithUser = { ...body, user_id: userId };
     const validatedInput = validateCreateTree(inputWithUser);
 
-    const db = getDatabase(request);
     const tree = await createTree(db, validatedInput);
 
     return createdResponse(tree);
@@ -79,6 +68,3 @@ export async function POST(request: NextRequest) {
     return handleError(error);
   }
 }
-
-// Removed edge runtime for OpenNext compatibility
-export const runtime = 'edge';

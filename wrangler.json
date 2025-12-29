@@ -1,10 +1,14 @@
 {
   "name": "shajara",
+  "main": ".open-next/worker.js",
   "compatibility_date": "2024-12-01",
   "compatibility_flags": [
     "nodejs_compat"
   ],
-  "pages_build_output_dir": ".vercel/output/static",
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
   "send_metrics": false,
   "d1_databases": [
     {
@@ -14,11 +18,15 @@
       "migrations_dir": "./migrations"
     }
   ],
-  "r2_buckets": [
+    "r2_buckets": [
     {
       "binding": "STORAGE",
       "bucket_name": "shajara-media",
       "preview_bucket_name": "shajara-media-preview"
+    },
+    {
+      "binding": "BACKUPS",
+      "bucket_name": "shajara-backups"
     }
   ],
   "observability": {
@@ -28,6 +36,79 @@
     "cpu_ms": 50000
   },
   "vars": {
-    "ENVIRONMENT": "production"
+    "ENVIRONMENT": "production",
+    "LOG_LEVEL": "info"
+  },
+  "env": {
+    "development": {
+      "name": "shajara-dev",
+      "vars": {
+        "ENVIRONMENT": "development",
+        "LOG_LEVEL": "debug"
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "shajara-db-dev",
+          "database_id": "REPLACE_WITH_DEV_DB_ID",
+          "migrations_dir": "./migrations"
+        }
+      ],
+      "kv_namespaces": [
+        {
+          "binding": "CACHE",
+          "id": "REPLACE_WITH_DEV_KV_ID"
+        },
+        {
+          "binding": "SESSIONS",
+          "id": "REPLACE_WITH_DEV_SESSIONS_KV_ID"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "STORAGE",
+          "bucket_name": "shajara-media-dev"
+        },
+        {
+          "binding": "BACKUPS",
+          "bucket_name": "shajara-backups-dev"
+        }
+      ]
+    },
+    "staging": {
+      "name": "shajara-staging",
+      "vars": {
+        "ENVIRONMENT": "staging",
+        "LOG_LEVEL": "debug"
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "shajara-db-staging",
+          "database_id": "REPLACE_WITH_STAGING_DB_ID",
+          "migrations_dir": "./migrations"
+        }
+      ],
+      "kv_namespaces": [
+        {
+          "binding": "CACHE",
+          "id": "REPLACE_WITH_STAGING_KV_ID"
+        },
+        {
+          "binding": "SESSIONS",
+          "id": "REPLACE_WITH_STAGING_SESSIONS_KV_ID"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "STORAGE",
+          "bucket_name": "shajara-media-staging"
+        },
+        {
+          "binding": "BACKUPS",
+          "bucket_name": "shajara-backups-staging"
+        }
+      ]
+    }
   }
 }

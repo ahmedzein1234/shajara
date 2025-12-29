@@ -24,15 +24,8 @@ import {
   ForbiddenError,
   UnauthorizedError,
 } from '@/lib/api/errors';
-
-// Mock user ID - replace with actual authentication
-function getCurrentUserId(request: NextRequest): string | null {
-  const authHeader = request.headers.get('x-user-id');
-  const url = new URL(request.url);
-  const queryUserId = url.searchParams.get('user_id');
-
-  return authHeader || queryUserId;
-}
+import { getCurrentUserId } from '@/lib/auth/session';
+import { invalidateTreeCache, getKVFromEnv } from '@/lib/cache/kv';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -89,13 +82,20 @@ export async function GET(request: NextRequest, context: RouteContext) {
  */
 export async function PUT(request: NextRequest, context: RouteContext) {
   try {
-    const userId = getCurrentUserId(request);
-    if (!userId) {
-      throw new UnauthorizedError('User ID is required');
-    }
-
     const { id } = await context.params;
     const db = getDatabase(request);
+    const env = (request as unknown as { env?: unknown }).env;
+    const kv = getKVFromEnv(env);
+    const userId = await getCurrentUserId(db);
+    if (!userId) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
+    // Get person first to know the tree_id for cache invalidation
+    const existingPerson = await getPersonById(db, id);
+    if (!existingPerson) {
+      throw new NotFoundError('Person not found');
+    }
 
     // Verify ownership
     const isOwner = await verifyPersonOwnership(db, id, userId);
@@ -112,6 +112,9 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       throw new NotFoundError('Person not found');
     }
 
+    // Invalidate tree cache since person was updated
+    invalidateTreeCache(kv, existingPerson.tree_id).catch(console.error);
+
     return successResponse(updatedPerson);
   } catch (error) {
     return handleError(error);
@@ -125,13 +128,20 @@ export async function PUT(request: NextRequest, context: RouteContext) {
  */
 export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
-    const userId = getCurrentUserId(request);
-    if (!userId) {
-      throw new UnauthorizedError('User ID is required');
-    }
-
     const { id } = await context.params;
     const db = getDatabase(request);
+    const env = (request as unknown as { env?: unknown }).env;
+    const kv = getKVFromEnv(env);
+    const userId = await getCurrentUserId(db);
+    if (!userId) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
+    // Get person first to know the tree_id for cache invalidation
+    const person = await getPersonById(db, id);
+    if (!person) {
+      throw new NotFoundError('Person not found');
+    }
 
     // Verify ownership
     const isOwner = await verifyPersonOwnership(db, id, userId);
@@ -145,11 +155,11 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       throw new NotFoundError('Person not found');
     }
 
+    // Invalidate tree cache since person was deleted
+    invalidateTreeCache(kv, person.tree_id).catch(console.error);
+
     return noContentResponse();
   } catch (error) {
     return handleError(error);
   }
 }
-
-// Removed edge runtime for OpenNext compatibility
-export const runtime = 'edge';

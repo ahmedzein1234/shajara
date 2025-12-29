@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { TreeDeciduous, Share2, MapPin, ArrowLeft, ArrowRight, Sparkles, Quote } from 'lucide-react';
+import { TreeDeciduous, Share2, MapPin, ArrowLeft, ArrowRight, Sparkles, Quote, Users, Heart, MessageCircle, BookOpen } from 'lucide-react';
 
 export default async function HomePage({
   params,
@@ -27,42 +27,42 @@ export default async function HomePage({
           <div className="max-w-4xl mx-auto text-center">
             {/* Arabic Proverb Badge */}
             <div className="inline-flex items-center gap-3 bg-white/15 backdrop-blur-sm px-5 py-2.5 rounded-full mb-10 border border-white/20">
-              <Quote className="w-4 h-4 text-gold-200" />
-              <span className="text-sm font-medium text-gold-100 font-display">
-                {locale === 'ar' ? 'المرء بأصله وفصله' : 'A person is defined by their roots'}
+              <Quote className="w-4 h-4 text-amber-200" />
+              <span className="text-sm font-medium text-amber-100 font-display">
+                {locale === 'ar' ? 'صِلَةُ الرَّحِم تزيدُ في العُمر' : 'Family bonds enrich your life'}
               </span>
             </div>
 
-            {/* Main Headline - Calligraphic */}
-            <h1 className="text-5xl md:text-7xl font-bold mb-8 leading-tight font-display">
+            {/* Main Headline - Clear & Readable */}
+            <h1 className="text-5xl md:text-7xl font-bold mb-8 leading-tight font-accent">
               {locale === 'ar' ? (
                 <>
-                  جذورٌ راسخة،
+                  اعرف عائلتك
                   <br />
-                  <span className="text-gold-200">وإرثٌ خالد</span>
+                  <span className="text-amber-200">واحفظ تراثها</span>
                 </>
               ) : (
                 <>
-                  Deep Roots,
+                  Know Your Family
                   <br />
-                  <span className="text-gold-200">Eternal Legacy</span>
+                  <span className="text-amber-200">Preserve Their Legacy</span>
                 </>
               )}
             </h1>
 
             <p className="text-xl md:text-2xl mb-12 text-emerald-50/90 max-w-3xl mx-auto leading-relaxed font-accent">
               {locale === 'ar'
-                ? 'احفظ ذكرى من سبقوك، وأورِث قصصك لمن يأتي بعدك. كل شجرةٍ عظيمة بدأت ببذرة، وكل عائلةٍ كريمة بدأت بذِكرى.'
-                : 'Preserve the memory of those who came before you, and pass your stories to those who come after. Every great tree began with a seed, and every noble family began with a memory.'}
+                ? 'تواصَل مع أهلك وأقاربك، واكتشف قصصهم وذكرياتهم. احفظ تراث عائلتك للأجيال القادمة، لأن العائلة ليست مجرد أسماء، بل روابط تستحق البقاء.'
+                : 'Connect with your relatives, discover their stories and memories, and preserve your family heritage for generations to come. Because family is not just names—it\'s relationships and bonds worth cherishing.'}
             </p>
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Link
                 href={`/${locale}/tree`}
-                className="group bg-white text-islamic-600 px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-smooth flex items-center gap-3"
+                className="group bg-white text-emerald-600 px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-smooth flex items-center gap-3"
               >
-                <span>{locale === 'ar' ? 'ابدأ رحلة الأنساب' : 'Begin Your Journey'}</span>
+                <span>{locale === 'ar' ? 'ابدأ التواصل مع عائلتك' : 'Start Connecting with Family'}</span>
                 {isRTL ? (
                   <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
                 ) : (
@@ -76,18 +76,20 @@ export default async function HomePage({
             </div>
 
             {/* Trust Indicator */}
-            <div className="mt-12 flex items-center justify-center gap-8 text-emerald-100/70 text-sm">
+            <div className="mt-12 flex items-center justify-center gap-8 text-emerald-100/70 text-sm flex-wrap">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-gold-200" />
-                <span>{locale === 'ar' ? 'مجاني للأبد' : 'Free Forever'}</span>
+                <Users className="w-4 h-4 text-amber-200" />
+                <span>{locale === 'ar' ? 'تواصل عائلي' : 'Family Connection'}</span>
               </div>
-              <div className="w-1 h-1 bg-emerald-100/50 rounded-full"></div>
+              <div className="w-1 h-1 bg-emerald-100/50 rounded-full hidden sm:block"></div>
               <div className="flex items-center gap-2">
-                <span>{locale === 'ar' ? 'عربي أصيل' : 'Arabic-First'}</span>
+                <BookOpen className="w-4 h-4 text-amber-200" />
+                <span>{locale === 'ar' ? 'قصص وذكريات' : 'Stories & Memories'}</span>
               </div>
-              <div className="w-1 h-1 bg-emerald-100/50 rounded-full"></div>
+              <div className="w-1 h-1 bg-emerald-100/50 rounded-full hidden sm:block"></div>
               <div className="flex items-center gap-2">
-                <span>{locale === 'ar' ? 'خصوصية تامة' : 'Complete Privacy'}</span>
+                <Sparkles className="w-4 h-4 text-amber-200" />
+                <span>{locale === 'ar' ? 'تراث محفوظ' : 'Preserved Heritage'}</span>
               </div>
             </div>
           </div>
@@ -112,64 +114,115 @@ export default async function HomePage({
         <div className="container mx-auto px-4 relative">
           {/* Section Header */}
           <div className="text-center mb-20">
-            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 font-display">
-              {locale === 'ar' ? 'لماذا تختار شجرة؟' : 'Why Choose Shajara?'}
+            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 font-accent">
+              {locale === 'ar' ? 'تعرَّف على عائلتك بشكلٍ أعمق' : 'Know Your Family Deeper'}
             </h2>
             <p className="text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
               {locale === 'ar'
-                ? 'هنا حيث تلتقي الأسماء بالذكريات، والماضي بالحاضر'
-                : 'Where names meet memories, and the past meets the present'}
+                ? 'أكثر من مجرد شجرة عائلة - هي جسر يربطك بأهلك وتاريخك وهويتك'
+                : 'More than a family tree—it\'s a bridge connecting you to your people, history, and identity'}
             </p>
             {/* Islamic Divider */}
             <div className="divider-islamic w-48 mx-auto mt-8"></div>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {/* Feature 1 - Tree Building */}
+            {/* Feature 1 - Know Your Family */}
             <div className="card-hover text-center group relative">
               <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-islamic-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-t-xl"></div>
               <div className="gradient-islamic w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-8 group-hover:scale-110 transition-smooth shadow-islamic">
-                <TreeDeciduous className="w-10 h-10 text-white" />
+                <Users className="w-10 h-10 text-white" />
               </div>
               <h3 className="text-2xl font-bold text-slate-900 mb-4 font-accent">
-                {locale === 'ar' ? 'شجرةٌ تحكي ألف حكاية' : 'A Tree Telling Thousand Stories'}
+                {locale === 'ar' ? 'اكتشف من هم أهلك' : 'Discover Who Your Family Is'}
               </h3>
               <p className="text-slate-600 leading-relaxed leading-arabic">
                 {locale === 'ar'
-                  ? 'ارسم خريطة نسبك بكل سهولة ويُسر، من الأجداد إلى الأحفاد. واجهة عربية أصيلة تحترم تراثنا وتقاليدنا في ذكر النسب والكُنى والألقاب.'
-                  : 'Draw your lineage map with ease, from ancestors to descendants. An authentic Arabic interface respecting our heritage and traditions.'}
+                  ? 'تعرَّف على أقاربك القريبين والبعيدين، واكتشف صِلات القرابة بينكم. كل اسمٍ في شجرتك له قصة، وكل فردٍ له مكانة خاصة.'
+                  : 'Meet your distant and close relatives, discover kinship ties, and learn where your family came from. Every name has a story, every person has a place.'}
               </p>
             </div>
 
-            {/* Feature 2 - Geographic Mapping */}
+            {/* Feature 2 - Connect & Communicate */}
             <div className="card-hover text-center group relative">
               <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-gold-300 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-t-xl"></div>
               <div className="gradient-gold w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-8 group-hover:scale-110 transition-smooth shadow-gold">
-                <MapPin className="w-10 h-10 text-heritage-navy" />
+                <MessageCircle className="w-10 h-10 text-slate-800" />
               </div>
               <h3 className="text-2xl font-bold text-slate-900 mb-4 font-accent">
-                {locale === 'ar' ? 'من أين جئنا؟ خارطة الجذور' : 'Where Did We Come From?'}
+                {locale === 'ar' ? 'تواصل مع عائلتك' : 'Connect With Your Family'}
               </h3>
               <p className="text-slate-600 leading-relaxed leading-arabic">
                 {locale === 'ar'
-                  ? 'تتبّع رحلة عائلتك عبر الزمان والمكان. ارسم خريطة مواطن أجدادك واكتشف المسار الذي سلكته عائلتك عبر القرون.'
-                  : 'Track your family journey through time and place. Map your ancestors homelands and discover the path your family took across centuries.'}
+                  ? 'تحدَّث مع أفراد عائلتك، وشارِك معهم الذكريات والصور. ابقَ على تواصلٍ دائم مع الأهل أينما كانوا.'
+                  : 'Chat with your family members, share memories and photos, and stay connected with relatives everywhere. Keeping family ties has never been easier.'}
               </p>
             </div>
 
-            {/* Feature 3 - Sharing */}
+            {/* Feature 3 - Preserve Heritage */}
             <div className="card-hover text-center group relative">
               <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-heritage-terracotta to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-t-xl"></div>
               <div className="bg-gradient-to-br from-heritage-terracotta to-heritage-terracotta/80 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-8 group-hover:scale-110 transition-smooth">
-                <Share2 className="w-10 h-10 text-white" />
+                <BookOpen className="w-10 h-10 text-white" />
               </div>
               <h3 className="text-2xl font-bold text-slate-900 mb-4 font-accent">
-                {locale === 'ar' ? 'تراثٌ مشترك، ذاكرةٌ جماعية' : 'Shared Heritage, Collective Memory'}
+                {locale === 'ar' ? 'احفظ تاريخ العائلة' : 'Preserve Family History'}
               </h3>
               <p className="text-slate-600 leading-relaxed leading-arabic">
                 {locale === 'ar'
-                  ? 'شارك شجرة عائلتك مع الأهل والأقارب. دع كل فردٍ يُسهم بما يعرف، يضيف صورة، يروي حكاية. معاً نحفظ ما نخشى أن ننساه.'
-                  : 'Share your family tree with relatives. Let each person contribute what they know, add a photo, tell a story. Together we preserve what we fear to forget.'}
+                  ? 'وثِّق قصص الأجداد وحِكمتهم، وسجِّل التقاليد والعادات. احفظ الذكريات قبل أن تضيع مع مرور الزمن.'
+                  : 'Document ancestral stories and wisdom, record traditions and customs, and preserve memories for future generations. Don\'t let history fade with time.'}
+              </p>
+            </div>
+          </div>
+
+          {/* Additional Features Row */}
+          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto mt-8">
+            {/* Feature 4 - Geographic Origins */}
+            <div className="card-hover text-center group relative">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-t-xl"></div>
+              <div className="bg-gradient-to-br from-blue-500 to-blue-600 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-8 group-hover:scale-110 transition-smooth">
+                <MapPin className="w-10 h-10 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900 mb-4 font-accent">
+                {locale === 'ar' ? 'اكتشف جذورك الجغرافية' : 'Discover Your Geographic Roots'}
+              </h3>
+              <p className="text-slate-600 leading-relaxed leading-arabic">
+                {locale === 'ar'
+                  ? 'تتبَّع رحلة عائلتك على الخريطة، من الموطن الأصلي إلى أماكن الاستقرار. اعرِف من أين جئتَ لتعرف مَن أنت.'
+                  : 'Trace your family journey across the map, from homeland to migration and settlement. Know where you came from to know who you are.'}
+              </p>
+            </div>
+
+            {/* Feature 5 - Family Tree */}
+            <div className="card-hover text-center group relative">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-emerald-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-t-xl"></div>
+              <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-8 group-hover:scale-110 transition-smooth">
+                <TreeDeciduous className="w-10 h-10 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900 mb-4 font-accent">
+                {locale === 'ar' ? 'ارسم شجرة عائلتك' : 'Draw Your Family Tree'}
+              </h3>
+              <p className="text-slate-600 leading-relaxed leading-arabic">
+                {locale === 'ar'
+                  ? 'أنشِئ شجرة عائلة تفاعلية وجميلة، وأضِف الأجداد والأحفاد. وثِّق كل علاقة قرابة بطريقة سهلة وواضحة.'
+                  : 'Create a beautiful interactive family tree, add ancestors and descendants, and document every kinship in an easy visual way.'}
+              </p>
+            </div>
+
+            {/* Feature 6 - Share & Collaborate */}
+            <div className="card-hover text-center group relative">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-pink-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-t-xl"></div>
+              <div className="bg-gradient-to-br from-pink-500 to-pink-600 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-8 group-hover:scale-110 transition-smooth">
+                <Heart className="w-10 h-10 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900 mb-4 font-accent">
+                {locale === 'ar' ? 'شارك وتعاون مع الأهل' : 'Share & Collaborate with Family'}
+              </h3>
+              <p className="text-slate-600 leading-relaxed leading-arabic">
+                {locale === 'ar'
+                  ? 'ادعُ أفراد العائلة للمشاركة، ليُضيف كلٌّ منهم ما يعرفه. معًا تبنون أرشيفًا عائليًا لا يُنسى.'
+                  : 'Invite family members to participate, each adds what they know, and together you build a complete unforgettable family archive.'}
               </p>
             </div>
           </div>
@@ -177,19 +230,56 @@ export default async function HomePage({
       </section>
 
       {/* Quote Section - Arabic Heritage */}
-      <section className="py-16 bg-islamic-50">
+      <section className="py-16 bg-emerald-50">
         <div className="container mx-auto px-4">
           <blockquote className="max-w-3xl mx-auto text-center">
-            <Quote className="w-12 h-12 text-gold-300 mx-auto mb-6 opacity-60" />
-            <p className="text-2xl md:text-3xl text-islamic-600 font-display leading-relaxed mb-6">
+            <Quote className="w-12 h-12 text-amber-500 mx-auto mb-6 opacity-60" />
+            <p className="text-2xl md:text-3xl text-emerald-700 font-display leading-relaxed mb-6">
               {locale === 'ar'
-                ? 'التاريخ ليس ما مضى، بل ما نحفظه ليبقى'
-                : 'History is not what passed, but what we preserve to remain'}
+                ? 'من لا يعرف ماضيه، لا يفهم حاضره، ولا يستطيع أن يخطط لمستقبله'
+                : 'He who does not know his past, cannot understand his present, nor plan for his future'}
             </p>
             <footer className="text-slate-500 font-accent">
               {locale === 'ar' ? '— حكمة عربية' : '— Arabic Wisdom'}
             </footer>
           </blockquote>
+        </div>
+      </section>
+
+      {/* Connection Section - NEW */}
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-pink-100 text-pink-600 mb-8">
+              <Heart className="w-8 h-8" />
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-6 font-accent">
+              {locale === 'ar' ? 'لأن العائلة أكثر من مجرد أسماء' : 'Because Family Is More Than Just Names'}
+            </h2>
+            <p className="text-xl text-slate-600 leading-relaxed mb-8">
+              {locale === 'ar'
+                ? 'العائلة هي الأمان والانتماء، هي الجذور التي تمنحنا القوة. نساعدك على إعادة اكتشاف روابطك العائلية، والتعرُّف على مَن يشاركونك الدم والتاريخ. كل قريبٍ هو جزءٌ من قصتك، وكل ذكرى كنزٌ للأجيال القادمة.'
+                : 'Family is safety, it is belonging, it is the roots that give us strength. At Shajara, we help you rediscover your family bonds and meet those who share your blood and history. Every relative you meet is part of your story, and every memory you preserve is a treasure for your future generations.'}
+            </p>
+            <div className="flex flex-wrap justify-center gap-4 text-sm text-slate-500">
+              <span className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-full">
+                <Users className="w-4 h-4" />
+                {locale === 'ar' ? 'اكتشف أقاربك' : 'Discover relatives'}
+              </span>
+              <span className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-full">
+                <MessageCircle className="w-4 h-4" />
+                {locale === 'ar' ? 'تواصل معهم' : 'Connect with them'}
+              </span>
+              <span className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-full">
+                <BookOpen className="w-4 h-4" />
+                {locale === 'ar' ? 'شارك القصص' : 'Share stories'}
+              </span>
+              <span className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-full">
+                <Heart className="w-4 h-4" />
+                {locale === 'ar' ? 'احفظ الذكريات' : 'Preserve memories'}
+              </span>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -203,31 +293,29 @@ export default async function HomePage({
         <div className="absolute bottom-10 left-20 w-48 h-48 bg-heritage-terracotta/10 rounded-full blur-2xl"></div>
 
         <div className="container mx-auto px-4 text-center relative">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6 font-display">
-            {locale === 'ar' ? 'البستان ينتظر الغارس' : 'The Orchard Awaits the Planter'}
+          <h2 className="text-4xl md:text-5xl font-bold mb-6 font-accent">
+            {locale === 'ar' ? 'ابدأ رحلتك مع عائلتك' : 'Start Your Journey With Family'}
           </h2>
           <p className="text-xl text-emerald-100/80 mb-12 max-w-2xl mx-auto leading-relaxed">
             {locale === 'ar'
-              ? 'كل رحلةٍ عظيمة تبدأ بخطوة. ابدأ الآن في توثيق تاريخ عائلتك، واحفظ أسماء من أحببت وذكرى من سبقك. فالأصول لا تُنسى، والجذور تبقى مهما طال الزمان.'
-              : 'Every great journey begins with a step. Start documenting your family history now, preserve the names of those you loved and the memory of those who came before. Origins are never forgotten, and roots remain no matter how long the time.'}
+              ? 'كل رابطة عائلية تستحق أن تُصان، وكل ذكرى تستحق أن تبقى. ابدأ اليوم ببناء شجرة عائلتك، وتواصَل مع أهلك، واحفظوا تاريخكم معًا.'
+              : 'Every family bond deserves to be cherished, and every memory deserves to be preserved. Start today building your family tree, connect with your relatives, and preserve your shared history for generations to come.'}
           </p>
 
           <Link
             href={`/${locale}/tree`}
-            className="inline-flex items-center gap-3 btn-heritage px-10 py-5 rounded-xl font-bold text-lg text-heritage-navy hover:scale-105 transition-smooth"
+            className="inline-flex items-center gap-3 btn-heritage px-10 py-5 rounded-xl font-bold text-lg text-slate-900 hover:scale-105 transition-smooth"
           >
-            <TreeDeciduous className="w-6 h-6" />
-            <span>{locale === 'ar' ? 'أنشئ شجرة عائلتك الآن' : 'Create Your Family Tree Now'}</span>
+            <Users className="w-6 h-6" />
+            <span>{locale === 'ar' ? 'تواصل مع عائلتك الآن' : 'Connect With Your Family Now'}</span>
           </Link>
 
           {/* Footer Quote */}
-          <p className="mt-12 text-gold-200/60 text-sm font-display italic">
-            {locale === 'ar' ? '«الأرحام معلقة بالعرش»' : '"Blood ties are sacred"'}
+          <p className="mt-12 text-amber-200/60 text-sm font-display italic">
+            {locale === 'ar' ? '«صِلَةُ الرَّحِمِ تَزيدُ في الرِّزقِ وَتُنسِئُ في الأَجَل»' : '"Family ties increase blessings and extend life"'}
           </p>
         </div>
       </section>
     </div>
   );
 }
-
-export const runtime = 'edge';

@@ -18,15 +18,7 @@ import {
   UnauthorizedError,
 } from '@/lib/api/errors';
 import type { Person, Relationship } from '@/lib/db/schema';
-
-// Mock user ID - replace with actual authentication
-function getCurrentUserId(request: NextRequest): string | null {
-  const authHeader = request.headers.get('x-user-id');
-  const url = new URL(request.url);
-  const queryUserId = url.searchParams.get('user_id');
-
-  return authHeader || queryUserId;
-}
+import { getCurrentUserId } from '@/lib/auth/session';
 
 interface RouteContext {
   params: Promise<{ treeId: string }>;
@@ -227,13 +219,12 @@ function generateGEDCOM(
  */
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
-    const userId = getCurrentUserId(request);
-    if (!userId) {
-      throw new UnauthorizedError('User ID is required');
-    }
-
     const { treeId } = await context.params;
     const db = getDatabase(request);
+    const userId = await getCurrentUserId(db);
+    if (!userId) {
+      throw new UnauthorizedError('Authentication required');
+    }
 
     // Get tree
     const tree = await getTreeById(db, treeId);
@@ -266,6 +257,3 @@ export async function GET(request: NextRequest, context: RouteContext) {
     return handleError(error);
   }
 }
-
-// Removed edge runtime for OpenNext compatibility
-export const runtime = 'edge';

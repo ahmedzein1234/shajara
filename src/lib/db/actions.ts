@@ -5,16 +5,14 @@
  * Uses Cloudflare D1 for production, compatible with edge runtime
  */
 
-import { getRequestContext } from '@cloudflare/next-on-pages';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 import type { Tree, Person, Relationship, DbTree, DbPerson } from './schema';
 import { dbToTree, dbToPerson } from './schema';
+import { getSession } from '@/lib/auth/actions';
 
-// Default user ID for development
-const DEV_USER_ID = 'dev-user-001';
-
-function getDB() {
-  const ctx = getRequestContext();
-  return ctx.env.DB;
+async function getDB() {
+  const { env } = await getCloudflareContext();
+  return env.DB;
 }
 
 // =====================================================
@@ -22,14 +20,14 @@ function getDB() {
 // =====================================================
 
 export async function getTrees(): Promise<Tree[]> {
-  const db = getDB();
+  const db = await getDB();
   const stmt = db.prepare('SELECT * FROM trees ORDER BY created_at DESC');
   const result = await stmt.all<DbTree>();
   return result.results.map(dbToTree);
 }
 
 export async function getTreeById(id: string): Promise<Tree | null> {
-  const db = getDB();
+  const db = await getDB();
   const stmt = db.prepare('SELECT * FROM trees WHERE id = ?');
   const result = await stmt.bind(id).first<DbTree>();
   return result ? dbToTree(result) : null;
@@ -40,7 +38,7 @@ export async function getTreeWithData(treeId: string): Promise<{
   persons: Person[];
   relationships: Relationship[];
 }> {
-  const db = getDB();
+  const db = await getDB();
 
   // Get tree
   const treeStmt = db.prepare('SELECT * FROM trees WHERE id = ?');
@@ -70,9 +68,15 @@ export async function createTree(input: {
   description?: string;
   is_public?: boolean;
 }): Promise<Tree> {
-  const db = getDB();
+  const session = await getSession();
+  if (!session?.user) {
+    throw new Error('Not authenticated');
+  }
+
+  const db = await getDB();
   const id = crypto.randomUUID();
   const now = Math.floor(Date.now() / 1000);
+  const userId = session.user.id;
 
   const stmt = db.prepare(`
     INSERT INTO trees (id, user_id, name, description, is_public, created_at, updated_at)
@@ -81,7 +85,7 @@ export async function createTree(input: {
 
   await stmt.bind(
     id,
-    DEV_USER_ID,
+    userId,
     input.name,
     input.description || null,
     input.is_public ? 1 : 0,
@@ -89,9 +93,15 @@ export async function createTree(input: {
     now
   ).run();
 
+  // Also add the user as owner in tree_collaborators
+  await db.prepare(`
+    INSERT INTO tree_collaborators (id, tree_id, user_id, role)
+    VALUES (?, ?, ?, 'owner')
+  `).bind(crypto.randomUUID(), id, userId).run();
+
   return {
     id,
-    user_id: DEV_USER_ID,
+    user_id: userId,
     name: input.name,
     description: input.description || null,
     is_public: input.is_public || false,
@@ -119,7 +129,7 @@ export async function createPerson(input: {
   is_living?: boolean;
   notes?: string;
 }): Promise<Person> {
-  const db = getDB();
+  const db = await getDB();
   const id = crypto.randomUUID();
   const now = Math.floor(Date.now() / 1000);
 
@@ -194,7 +204,7 @@ export async function createRelationship(input: {
   marriage_date?: string;
   marriage_place?: string;
 }): Promise<Relationship> {
-  const db = getDB();
+  const db = await getDB();
   const id = crypto.randomUUID();
   const now = Math.floor(Date.now() / 1000);
 
@@ -237,16 +247,171 @@ export async function createRelationship(input: {
 // =====================================================
 
 export async function getPersonsByTreeId(treeId: string): Promise<Person[]> {
-  const db = getDB();
+  const db = await getDB();
   const stmt = db.prepare('SELECT * FROM persons WHERE tree_id = ? ORDER BY created_at DESC');
   const result = await stmt.bind(treeId).all<DbPerson>();
   return result.results.map(dbToPerson);
 }
 
 export async function getRelationshipsByTreeId(treeId: string): Promise<Relationship[]> {
-  const db = getDB();
+  const db = await getDB();
   const stmt = db.prepare('SELECT * FROM relationships WHERE tree_id = ? ORDER BY created_at DESC');
   const result = await stmt.bind(treeId).all<Relationship>();
   return result.results;
+}
+
+export async function getPersonById(id: string): Promise<Person | null> {
+  const db = await getDB();
+  const stmt = db.prepare('SELECT * FROM persons WHERE id = ?');
+  const result = await stmt.bind(id).first<DbPerson>();
+  return result ? dbToPerson(result) : null;
+}
+
+export async function updatePerson(id: string, input: {
+  given_name?: string;
+  patronymic_chain?: string;
+  family_name?: string;
+  full_name_ar?: string;
+  full_name_en?: string;
+  gender?: 'male' | 'female';
+  birth_date?: string;
+  birth_place?: string;
+  birth_place_lat?: number;
+  birth_place_lng?: number;
+  death_date?: string;
+  death_place?: string;
+  death_place_lat?: number;
+  death_place_lng?: number;
+  is_living?: boolean;
+  photo_url?: string;
+  notes?: string;
+}): Promise<Person | null> {
+  const db = await getDB();
+  const now = Math.floor(Date.now() / 1000);
+
+  const updates: string[] = [];
+  const values: (string | number | null)[] = [];
+
+  if (input.given_name !== undefined) {
+    updates.push('given_name = ?');
+    values.push(input.given_name);
+  }
+  if (input.patronymic_chain !== undefined) {
+    updates.push('patronymic_chain = ?');
+    values.push(input.patronymic_chain || null);
+  }
+  if (input.family_name !== undefined) {
+    updates.push('family_name = ?');
+    values.push(input.family_name || null);
+  }
+  if (input.full_name_ar !== undefined) {
+    updates.push('full_name_ar = ?');
+    values.push(input.full_name_ar || null);
+  }
+  if (input.full_name_en !== undefined) {
+    updates.push('full_name_en = ?');
+    values.push(input.full_name_en || null);
+  }
+  if (input.gender !== undefined) {
+    updates.push('gender = ?');
+    values.push(input.gender);
+  }
+  if (input.birth_date !== undefined) {
+    updates.push('birth_date = ?');
+    values.push(input.birth_date || null);
+  }
+  if (input.birth_place !== undefined) {
+    updates.push('birth_place = ?');
+    values.push(input.birth_place || null);
+  }
+  if (input.death_date !== undefined) {
+    updates.push('death_date = ?');
+    values.push(input.death_date || null);
+  }
+  if (input.death_place !== undefined) {
+    updates.push('death_place = ?');
+    values.push(input.death_place || null);
+  }
+  if (input.is_living !== undefined) {
+    updates.push('is_living = ?');
+    values.push(input.is_living ? 1 : 0);
+  }
+  if (input.photo_url !== undefined) {
+    updates.push('photo_url = ?');
+    values.push(input.photo_url || null);
+  }
+  if (input.notes !== undefined) {
+    updates.push('notes = ?');
+    values.push(input.notes || null);
+  }
+
+  if (updates.length === 0) {
+    return getPersonById(id);
+  }
+
+  updates.push('updated_at = ?');
+  values.push(now);
+  values.push(id);
+
+  const stmt = db.prepare(`UPDATE persons SET ${updates.join(', ')} WHERE id = ?`);
+  await stmt.bind(...values).run();
+
+  return getPersonById(id);
+}
+
+export async function deletePerson(id: string): Promise<boolean> {
+  const db = await getDB();
+  const stmt = db.prepare('DELETE FROM persons WHERE id = ?');
+  const result = await stmt.bind(id).run();
+  return result.success;
+}
+
+export async function deleteRelationship(id: string): Promise<boolean> {
+  const db = await getDB();
+  const stmt = db.prepare('DELETE FROM relationships WHERE id = ?');
+  const result = await stmt.bind(id).run();
+  return result.success;
+}
+
+export async function updateRelationship(id: string, input: {
+  marriage_date?: string;
+  marriage_place?: string;
+  divorce_date?: string;
+  divorce_place?: string;
+}): Promise<Relationship | null> {
+  const db = await getDB();
+
+  const updates: string[] = [];
+  const values: (string | null)[] = [];
+
+  if (input.marriage_date !== undefined) {
+    updates.push('marriage_date = ?');
+    values.push(input.marriage_date || null);
+  }
+  if (input.marriage_place !== undefined) {
+    updates.push('marriage_place = ?');
+    values.push(input.marriage_place || null);
+  }
+  if (input.divorce_date !== undefined) {
+    updates.push('divorce_date = ?');
+    values.push(input.divorce_date || null);
+  }
+  if (input.divorce_place !== undefined) {
+    updates.push('divorce_place = ?');
+    values.push(input.divorce_place || null);
+  }
+
+  if (updates.length === 0) {
+    const stmt = db.prepare('SELECT * FROM relationships WHERE id = ?');
+    return await stmt.bind(id).first<Relationship>();
+  }
+
+  values.push(id);
+
+  const stmt = db.prepare(`UPDATE relationships SET ${updates.join(', ')} WHERE id = ?`);
+  await stmt.bind(...values).run();
+
+  const selectStmt = db.prepare('SELECT * FROM relationships WHERE id = ?');
+  return await selectStmt.bind(id).first<Relationship>();
 }
 

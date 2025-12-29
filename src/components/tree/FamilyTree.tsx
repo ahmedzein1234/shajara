@@ -1,6 +1,15 @@
 /**
  * FamilyTree Component
  * Main component for rendering and interacting with the family tree visualization
+ *
+ * Enhanced with:
+ * - Details side panel for viewing person info
+ * - Relationship finder for discovering connections
+ * - Generation slider for controlling tree depth
+ * - Keyboard shortcuts panel
+ * - Viewport culling for performance
+ * - Skeleton loading states
+ * - Smooth animations
  */
 
 'use client';
@@ -9,10 +18,20 @@ import React, { useRef, useState, useEffect, useCallback, useReducer } from 'rea
 import { Person, Relationship } from '@/lib/db/schema';
 import { TreeData, TreeViewState, TreeViewAction, LayoutType, ExportFormat, TreeNode as TreeNodeType } from '@/types/tree';
 import { useTreeLayout, useCenterTransform } from '@/hooks/useTreeLayout';
+import { useBranchColors } from '@/hooks/useBranchColors';
+import { useViewportCulling } from '@/hooks/useViewportCulling';
 import { PersonNode, CompactPersonNode } from './PersonNode';
 import { ConnectionLines } from './ConnectionLine';
 import { TreeControls } from './TreeControls';
 import { TreeLegend } from './TreeLegend';
+import { Minimap } from './Minimap';
+import { ContextMenu } from './ContextMenu';
+import { FanChart } from './FanChart';
+import { DetailsSidePanel } from './DetailsSidePanel';
+import { RelationshipFinder } from './RelationshipFinder';
+import { GenerationSlider } from './GenerationSlider';
+import { KeyboardShortcuts } from './KeyboardShortcuts';
+import { TreeSkeleton } from './TreeSkeleton';
 import { cn } from '@/lib/utils';
 
 interface FamilyTreeProps {
@@ -22,7 +41,20 @@ interface FamilyTreeProps {
   locale?: 'ar' | 'en';
   onPersonClick?: (person: Person) => void;
   onPersonDoubleClick?: (person: Person) => void;
+  onAddChild?: (person: Person) => void;
+  onAddSpouse?: (person: Person) => void;
+  onAddParent?: (person: Person) => void;
+  onEdit?: (person: Person) => void;
+  onDelete?: (person: Person) => void;
   className?: string;
+}
+
+// Context menu state
+interface ContextMenuState {
+  isOpen: boolean;
+  x: number;
+  y: number;
+  node: TreeNodeType | null;
 }
 
 /**
@@ -108,6 +140,11 @@ export function FamilyTree({
   locale = 'ar',
   onPersonClick,
   onPersonDoubleClick,
+  onAddChild,
+  onAddSpouse,
+  onAddParent,
+  onEdit,
+  onDelete,
   className,
 }: FamilyTreeProps) {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -120,6 +157,51 @@ export function FamilyTree({
   const [viewportSize, setViewportSize] = useState({ width: 1000, height: 800 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<ContextMenuState>({
+    isOpen: false,
+    x: 0,
+    y: 0,
+    node: null,
+  });
+
+  // Show minimap state (hidden by default on mobile)
+  const [showMinimap, setShowMinimap] = useState(true);
+
+  // Color coding toggle
+  const [colorCodingEnabled, setColorCodingEnabled] = useState(true);
+
+  // Details side panel state
+  const [selectedPersonForDetails, setSelectedPersonForDetails] = useState<Person | null>(null);
+  const [isDetailsPanelOpen, setIsDetailsPanelOpen] = useState(false);
+
+  // Convert selected person to TreeNode for DetailsSidePanel
+  const selectedNodeForDetails: TreeNodeType | null = selectedPersonForDetails ? {
+    id: selectedPersonForDetails.id,
+    person: selectedPersonForDetails,
+    x: 0,
+    y: 0,
+    level: 0,
+    parents: [],
+    children: [],
+    spouses: [],
+    subtreeWidth: 0,
+    isCollapsed: false,
+    isHighlighted: false,
+  } : null;
+
+  // Relationship finder state
+  const [isRelationshipFinderOpen, setIsRelationshipFinderOpen] = useState(false);
+
+  // Keyboard shortcuts panel state
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+
+  // Generation slider value
+  const [maxGenerations, setMaxGenerations] = useState(10);
+
+  // Loading state
+  const [isLoading, setIsLoading] = useState(false);
 
   // Prepare tree data
   const treeData: TreeData = {
@@ -145,6 +227,30 @@ export function FamilyTree({
 
   // Calculate center transform for fit view
   const centerTransform = useCenterTransform(layout, viewportSize.width, viewportSize.height);
+
+  // Calculate branch colors
+  const { colorMap: branchColors, legend: branchLegend } = useBranchColors(
+    layout?.nodes || [],
+    rootPersonId,
+    colorCodingEnabled
+  );
+
+  // Apply viewport culling for performance
+  const {
+    visibleNodes,
+    visibleConnections,
+    cullingEnabled,
+    renderedNodes,
+    totalNodes,
+  } = useViewportCulling(
+    layout?.nodes || [],
+    layout?.connections || [],
+    viewportSize.width,
+    viewportSize.height,
+    state.translateX,
+    state.translateY,
+    state.scale
+  );
 
   // Update viewport size on mount and resize
   useEffect(() => {
@@ -211,6 +317,33 @@ export function FamilyTree({
     },
     [onPersonClick]
   );
+
+  // Open details panel for a person
+  const handleViewDetails = useCallback((person: Person) => {
+    setSelectedPersonForDetails(person);
+    setIsDetailsPanelOpen(true);
+  }, []);
+
+  // Navigate to person in tree
+  const handleNavigateToPerson = useCallback((personId: string) => {
+    const node = layout?.nodes.find(n => n.id === personId);
+    if (node) {
+      dispatch({ type: 'SELECT_PERSON', personId: node.id });
+      const newTranslateX = viewportSize.width / 2 - (node.x + 110) * state.scale;
+      const newTranslateY = viewportSize.height / 2 - (node.y + 70) * state.scale;
+      dispatch({
+        type: 'SET_TRANSFORM',
+        translateX: newTranslateX,
+        translateY: newTranslateY,
+        scale: state.scale,
+      });
+    }
+  }, [layout, viewportSize, state.scale]);
+
+  // Highlight a path of person IDs
+  const handleHighlightPath = useCallback((personIds: string[]) => {
+    dispatch({ type: 'HIGHLIGHT_PERSONS', personIds });
+  }, []);
 
   const handleNodeDoubleClick = useCallback(
     (node: TreeNodeType) => {
@@ -292,6 +425,17 @@ export function FamilyTree({
     [layout]
   );
 
+  // Touch state for pinch-to-zoom
+  const [touchState, setTouchState] = useState<{
+    initialDistance: number | null;
+    initialScale: number;
+    initialCenter: { x: number; y: number } | null;
+  }>({
+    initialDistance: null,
+    initialScale: 1,
+    initialCenter: null,
+  });
+
   // Pan and zoom handlers
   const handleMouseDown = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
     if (e.button === 0) {
@@ -325,15 +469,260 @@ export function FamilyTree({
     (e: React.WheelEvent<SVGSVGElement>) => {
       e.preventDefault();
       const delta = e.deltaY > 0 ? 0.9 : 1.1;
-      dispatch({ type: 'SET_ZOOM', scale: state.scale * delta });
+
+      // Zoom towards mouse position
+      const rect = (e.target as Element).getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      const newScale = Math.max(0.1, Math.min(3.0, state.scale * delta));
+      const scaleFactor = newScale / state.scale;
+
+      const newTranslateX = mouseX - (mouseX - state.translateX) * scaleFactor;
+      const newTranslateY = mouseY - (mouseY - state.translateY) * scaleFactor;
+
+      dispatch({
+        type: 'SET_TRANSFORM',
+        translateX: newTranslateX,
+        translateY: newTranslateY,
+        scale: newScale,
+      });
     },
-    [state.scale]
+    [state.scale, state.translateX, state.translateY]
   );
+
+  // Touch handlers for mobile
+  const handleTouchStart = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
+    if (e.touches.length === 2) {
+      // Pinch start
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const distance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+      );
+      const centerX = (touch1.clientX + touch2.clientX) / 2;
+      const centerY = (touch1.clientY + touch2.clientY) / 2;
+
+      setTouchState({
+        initialDistance: distance,
+        initialScale: state.scale,
+        initialCenter: { x: centerX, y: centerY },
+      });
+    } else if (e.touches.length === 1) {
+      // Pan start
+      setIsPanning(true);
+      setPanStart({
+        x: e.touches[0].clientX - state.translateX,
+        y: e.touches[0].clientY - state.translateY,
+      });
+    }
+  }, [state.scale, state.translateX, state.translateY]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
+    if (e.touches.length === 2 && touchState.initialDistance && touchState.initialCenter) {
+      // Pinch zoom
+      e.preventDefault();
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const distance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+      );
+
+      const scaleFactor = distance / touchState.initialDistance;
+      const newScale = Math.max(0.1, Math.min(3.0, touchState.initialScale * scaleFactor));
+
+      // Zoom towards pinch center
+      const centerX = (touch1.clientX + touch2.clientX) / 2;
+      const centerY = (touch1.clientY + touch2.clientY) / 2;
+
+      const scaleRatio = newScale / state.scale;
+      const newTranslateX = centerX - (centerX - state.translateX) * scaleRatio;
+      const newTranslateY = centerY - (centerY - state.translateY) * scaleRatio;
+
+      dispatch({
+        type: 'SET_TRANSFORM',
+        translateX: newTranslateX,
+        translateY: newTranslateY,
+        scale: newScale,
+      });
+    } else if (e.touches.length === 1 && isPanning) {
+      // Pan
+      const newTranslateX = e.touches[0].clientX - panStart.x;
+      const newTranslateY = e.touches[0].clientY - panStart.y;
+      dispatch({
+        type: 'SET_TRANSFORM',
+        translateX: newTranslateX,
+        translateY: newTranslateY,
+        scale: state.scale,
+      });
+    }
+  }, [touchState, state.scale, state.translateX, state.translateY, isPanning, panStart]);
+
+  const handleTouchEnd = useCallback(() => {
+    setIsPanning(false);
+    setTouchState({
+      initialDistance: null,
+      initialScale: 1,
+      initialCenter: null,
+    });
+  }, []);
 
   const handleBackgroundClick = useCallback(() => {
     dispatch({ type: 'SELECT_PERSON', personId: null });
     dispatch({ type: 'CLEAR_HIGHLIGHTS' });
+    setContextMenu({ isOpen: false, x: 0, y: 0, node: null });
   }, []);
+
+  // Context menu handlers
+  const handleContextMenuOpen = useCallback((node: TreeNodeType, event: React.MouseEvent) => {
+    setContextMenu({
+      isOpen: true,
+      x: event.clientX,
+      y: event.clientY,
+      node,
+    });
+  }, []);
+
+  const handleContextMenuClose = useCallback(() => {
+    setContextMenu({ isOpen: false, x: 0, y: 0, node: null });
+  }, []);
+
+  // Minimap navigation
+  const handleMinimapNavigate = useCallback((newTranslateX: number, newTranslateY: number) => {
+    dispatch({
+      type: 'SET_TRANSFORM',
+      translateX: newTranslateX,
+      translateY: newTranslateY,
+      scale: state.scale,
+    });
+  }, [state.scale]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if typing in an input
+      if (
+        document.activeElement?.tagName === 'INPUT' ||
+        document.activeElement?.tagName === 'TEXTAREA'
+      ) {
+        return;
+      }
+
+      // Only handle if this component is focused
+      if (!containerRef.current?.contains(document.activeElement) && document.activeElement !== document.body) {
+        return;
+      }
+
+      switch (e.key) {
+        case '+':
+        case '=':
+          e.preventDefault();
+          dispatch({ type: 'ZOOM_IN' });
+          break;
+        case '-':
+          e.preventDefault();
+          dispatch({ type: 'ZOOM_OUT' });
+          break;
+        case '0':
+          e.preventDefault();
+          handleFitView();
+          break;
+        case 'Escape':
+          dispatch({ type: 'SELECT_PERSON', personId: null });
+          dispatch({ type: 'CLEAR_HIGHLIGHTS' });
+          handleContextMenuClose();
+          setIsDetailsPanelOpen(false);
+          setIsRelationshipFinderOpen(false);
+          setIsShortcutsOpen(false);
+          break;
+        case '?':
+          e.preventDefault();
+          setIsShortcutsOpen(prev => !prev);
+          break;
+        case 'r':
+        case 'R':
+          if (e.ctrlKey || e.metaKey) break; // Don't override browser refresh
+          e.preventDefault();
+          setIsRelationshipFinderOpen(prev => !prev);
+          break;
+        case 'Enter':
+          if (state.selectedPersonId) {
+            const node = layout?.nodes.find(n => n.id === state.selectedPersonId);
+            if (node) {
+              handleViewDetails(node.person);
+            }
+          }
+          break;
+        case 'ArrowUp':
+        case 'ArrowDown':
+        case 'ArrowLeft':
+        case 'ArrowRight':
+          if (state.selectedPersonId && layout) {
+            e.preventDefault();
+            navigateToAdjacentNode(e.key);
+          }
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [state.selectedPersonId, layout, handleFitView, handleContextMenuClose, handleViewDetails]);
+
+  // Navigate to adjacent node
+  const navigateToAdjacentNode = useCallback((direction: string) => {
+    if (!layout || !state.selectedPersonId) return;
+
+    const currentNode = layout.nodes.find(n => n.id === state.selectedPersonId);
+    if (!currentNode) return;
+
+    let targetNode: TreeNodeType | null = null;
+
+    switch (direction) {
+      case 'ArrowUp':
+        // Go to parent
+        if (currentNode.parents.length > 0) {
+          targetNode = currentNode.parents[0];
+        }
+        break;
+      case 'ArrowDown':
+        // Go to first child
+        if (currentNode.children.length > 0) {
+          targetNode = currentNode.children[0];
+        }
+        break;
+      case 'ArrowLeft':
+      case 'ArrowRight':
+        // Go to sibling or spouse
+        const isRight = (direction === 'ArrowRight') !== (locale === 'ar');
+        if (currentNode.spouses.length > 0) {
+          targetNode = currentNode.spouses[0].node;
+        } else if (currentNode.parents.length > 0) {
+          const parent = currentNode.parents[0];
+          const siblingIndex = parent.children.findIndex(c => c.id === currentNode.id);
+          const nextIndex = isRight ? siblingIndex + 1 : siblingIndex - 1;
+          if (nextIndex >= 0 && nextIndex < parent.children.length) {
+            targetNode = parent.children[nextIndex];
+          }
+        }
+        break;
+    }
+
+    if (targetNode) {
+      dispatch({ type: 'SELECT_PERSON', personId: targetNode.id });
+      // Center view on the new node
+      const newTranslateX = viewportSize.width / 2 - (targetNode.x + 110) * state.scale;
+      const newTranslateY = viewportSize.height / 2 - (targetNode.y + 70) * state.scale;
+      dispatch({
+        type: 'SET_TRANSFORM',
+        translateX: newTranslateX,
+        translateY: newTranslateY,
+        scale: state.scale,
+      });
+    }
+  }, [layout, state.selectedPersonId, state.scale, viewportSize, locale]);
 
   if (!layout) {
     return (
@@ -348,6 +737,7 @@ export function FamilyTree({
   }
 
   const useCompactNodes = state.scale < 0.5;
+  const isFanLayout = state.layoutType === 'fan';
 
   return (
     <div
@@ -355,70 +745,94 @@ export function FamilyTree({
       className={cn('relative w-full h-full bg-gray-50 overflow-hidden', className)}
       dir={state.direction}
     >
-      {/* SVG Canvas */}
-      <svg
-        ref={svgRef}
-        className="w-full h-full cursor-move"
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onWheel={handleWheel}
-        style={{ touchAction: 'none' }}
-      >
-        <defs>
-          {/* Patterns and filters */}
-          <filter id="shadow">
-            <feDropShadow dx="0" dy="2" stdDeviation="4" floodOpacity="0.1" />
-          </filter>
-        </defs>
-
-        {/* Main group with transform */}
-        <g transform={`translate(${state.translateX}, ${state.translateY}) scale(${state.scale})`}>
-          {/* Background click area */}
-          <rect
-            x={layout.minX}
-            y={layout.minY}
-            width={layout.width}
-            height={layout.height}
-            fill="transparent"
-            onClick={handleBackgroundClick}
+      {/* Fan Chart View */}
+      {isFanLayout ? (
+        <div className="w-full h-full flex items-center justify-center overflow-auto p-4">
+          <FanChart
+            nodes={layout.nodes}
+            rootPersonId={rootPersonId || layout.rootNode.id}
+            locale={locale}
+            onPersonClick={onPersonClick}
+            onPersonDoubleClick={onPersonDoubleClick}
+            maxGenerations={5}
+            size={Math.min(viewportSize.width, viewportSize.height) - 40}
           />
+        </div>
+      ) : (
+        /* Standard Tree SVG Canvas */
+        <svg
+          ref={svgRef}
+          className="w-full h-full cursor-move select-none"
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onWheel={handleWheel}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchEnd}
+          style={{ touchAction: 'none' }}
+          tabIndex={0}
+          aria-label={locale === 'ar' ? 'شجرة العائلة' : 'Family Tree'}
+        >
+          <defs>
+            {/* Patterns and filters */}
+            <filter id="shadow">
+              <feDropShadow dx="0" dy="2" stdDeviation="4" floodOpacity="0.1" />
+            </filter>
+          </defs>
 
-          {/* Connection lines */}
-          <ConnectionLines
-            connections={layout.connections}
-            highlightedNodeIds={state.highlightedPersonIds}
-          />
+          {/* Main group with transform */}
+          <g transform={`translate(${state.translateX}, ${state.translateY}) scale(${state.scale})`}>
+            {/* Background click area */}
+            <rect
+              x={layout.minX}
+              y={layout.minY}
+              width={layout.width}
+              height={layout.height}
+              fill="transparent"
+              onClick={handleBackgroundClick}
+            />
 
-          {/* Person nodes */}
-          <g className="person-nodes">
-            {layout.nodes.map((node) =>
-              useCompactNodes ? (
-                <CompactPersonNode
-                  key={node.id}
-                  node={node}
-                  isSelected={state.selectedPersonId === node.id}
-                  onClick={handleNodeClick}
-                />
-              ) : (
-                <PersonNode
-                  key={node.id}
-                  node={node}
-                  isSelected={state.selectedPersonId === node.id}
-                  isHighlighted={state.highlightedPersonIds.has(node.id)}
-                  locale={locale}
-                  onClick={handleNodeClick}
-                  onDoubleClick={handleNodeDoubleClick}
-                  showPhotos={state.scale >= 0.7}
-                  showDates={state.scale >= 0.5}
-                  showPatronymic={state.scale >= 0.8}
-                />
-              )
-            )}
+            {/* Connection lines - using culled connections for performance */}
+            <ConnectionLines
+              connections={visibleConnections}
+              highlightedNodeIds={state.highlightedPersonIds}
+            />
+
+            {/* Person nodes - using culled nodes for performance */}
+            <g className="person-nodes">
+              {visibleNodes.map((node) =>
+                useCompactNodes ? (
+                  <CompactPersonNode
+                    key={node.id}
+                    node={node}
+                    isSelected={state.selectedPersonId === node.id}
+                    isHighlighted={state.highlightedPersonIds.has(node.id)}
+                    onClick={handleNodeClick}
+                  />
+                ) : (
+                  <PersonNode
+                    key={node.id}
+                    node={node}
+                    isSelected={state.selectedPersonId === node.id}
+                    isHighlighted={state.highlightedPersonIds.has(node.id)}
+                    locale={locale}
+                    onClick={handleNodeClick}
+                    onDoubleClick={handleNodeDoubleClick}
+                    onContextMenu={handleContextMenuOpen}
+                    showPhotos={state.scale >= 0.6}
+                    showDates={state.scale >= 0.45}
+                    showPatronymic={state.scale >= 0.7}
+                    branchColor={colorCodingEnabled ? branchColors[node.id] : undefined}
+                  />
+                )
+              )}
+            </g>
           </g>
-        </g>
-      </svg>
+        </svg>
+      )}
 
       {/* Controls */}
       <TreeControls
@@ -441,12 +855,107 @@ export function FamilyTree({
       {/* Legend */}
       <TreeLegend locale={locale} />
 
+      {/* Minimap */}
+      {showMinimap && viewportSize.width > 768 && (
+        <Minimap
+          layout={layout}
+          viewportWidth={viewportSize.width}
+          viewportHeight={viewportSize.height}
+          translateX={state.translateX}
+          translateY={state.translateY}
+          scale={state.scale}
+          onNavigate={handleMinimapNavigate}
+          locale={locale}
+          selectedPersonId={state.selectedPersonId}
+        />
+      )}
+
+      {/* Context Menu */}
+      {contextMenu.isOpen && contextMenu.node && (
+        <ContextMenu
+          node={contextMenu.node}
+          x={contextMenu.x}
+          y={contextMenu.y}
+          locale={locale}
+          onClose={handleContextMenuClose}
+          onAddChild={onAddChild ? (node) => onAddChild(node.person) : undefined}
+          onAddSpouse={onAddSpouse ? (node) => onAddSpouse(node.person) : undefined}
+          onAddParent={onAddParent ? (node) => onAddParent(node.person) : undefined}
+          onEdit={onEdit ? (node) => onEdit(node.person) : undefined}
+          onViewProfile={(node) => handleViewDetails(node.person)}
+          onSetAsRoot={(node) => {
+            dispatch({ type: 'SELECT_PERSON', personId: node.id });
+            // Could dispatch a root change here if needed
+          }}
+          onCopyLink={(node) => {
+            const url = `${window.location.origin}/${locale}/tree/${node.person.tree_id}?person=${node.id}`;
+            navigator.clipboard.writeText(url);
+          }}
+          onDelete={onDelete ? (node) => onDelete(node.person) : undefined}
+        />
+      )}
+
       {/* Loading overlay for large trees */}
       {layout.nodes.length > 100 && (
         <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-white px-4 py-2 rounded-full shadow-lg text-xs text-gray-600">
           {locale === 'ar' ? `${layout.nodes.length} شخص` : `${layout.nodes.length} people`}
         </div>
       )}
+
+      {/* Keyboard shortcuts hint */}
+      <div className="absolute bottom-4 left-4 text-xs text-gray-400 hidden md:block">
+        {locale === 'ar' ? (
+          <span>اختصارات: ? للمساعدة • R للعلاقات • +/- للتكبير • Enter للتفاصيل</span>
+        ) : (
+          <span>Shortcuts: ? for help • R for relationships • +/- zoom • Enter for details</span>
+        )}
+      </div>
+
+      {/* Generation Slider */}
+      <GenerationSlider
+        value={maxGenerations}
+        min={1}
+        max={10}
+        onChange={setMaxGenerations}
+        locale={locale}
+        className="absolute top-4 left-4"
+      />
+
+      {/* Performance indicator for large trees */}
+      {cullingEnabled && (
+        <div className="absolute bottom-20 right-4 bg-white/90 px-3 py-1.5 rounded-full shadow text-xs text-gray-500">
+          {locale === 'ar'
+            ? `${renderedNodes}/${totalNodes} معروض`
+            : `${renderedNodes}/${totalNodes} visible`}
+        </div>
+      )}
+
+      {/* Details Side Panel */}
+      <DetailsSidePanel
+        node={selectedNodeForDetails}
+        isOpen={isDetailsPanelOpen}
+        onClose={() => setIsDetailsPanelOpen(false)}
+        onSelectPerson={handleNavigateToPerson}
+        onEdit={onEdit}
+        locale={locale}
+      />
+
+      {/* Relationship Finder */}
+      <RelationshipFinder
+        nodes={layout?.nodes || []}
+        isOpen={isRelationshipFinderOpen}
+        onClose={() => setIsRelationshipFinderOpen(false)}
+        onSelectPerson={handleNavigateToPerson}
+        onHighlightPath={handleHighlightPath}
+        locale={locale}
+      />
+
+      {/* Keyboard Shortcuts Panel */}
+      <KeyboardShortcuts
+        locale={locale}
+        isOpen={isShortcutsOpen}
+        onClose={() => setIsShortcutsOpen(false)}
+      />
     </div>
   );
 }

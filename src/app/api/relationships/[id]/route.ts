@@ -8,6 +8,7 @@ import {
   getDatabase,
   deleteRelationship,
   verifyRelationshipOwnership,
+  getRelationshipById,
 } from '@/lib/api/db';
 import {
   handleError,
@@ -16,15 +17,8 @@ import {
   ForbiddenError,
   UnauthorizedError,
 } from '@/lib/api/errors';
-
-// Mock user ID - replace with actual authentication
-function getCurrentUserId(request: NextRequest): string | null {
-  const authHeader = request.headers.get('x-user-id');
-  const url = new URL(request.url);
-  const queryUserId = url.searchParams.get('user_id');
-
-  return authHeader || queryUserId;
-}
+import { getCurrentUserId } from '@/lib/auth/session';
+import { invalidateTreeCache, getKVFromEnv } from '@/lib/cache/kv';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -36,13 +30,20 @@ interface RouteContext {
  */
 export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
-    const userId = getCurrentUserId(request);
-    if (!userId) {
-      throw new UnauthorizedError('User ID is required');
-    }
-
     const { id } = await context.params;
     const db = getDatabase(request);
+    const env = (request as unknown as { env?: unknown }).env;
+    const kv = getKVFromEnv(env);
+    const userId = await getCurrentUserId(db);
+    if (!userId) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
+    // Get relationship first to know tree_id for cache invalidation
+    const relationship = await getRelationshipById(db, id);
+    if (!relationship) {
+      throw new NotFoundError('Relationship not found');
+    }
 
     // Verify ownership
     const isOwner = await verifyRelationshipOwnership(db, id, userId);
@@ -56,11 +57,11 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       throw new NotFoundError('Relationship not found');
     }
 
+    // Invalidate tree cache since relationships changed
+    invalidateTreeCache(kv, relationship.tree_id).catch(console.error);
+
     return noContentResponse();
   } catch (error) {
     return handleError(error);
   }
 }
-
-// Removed edge runtime for OpenNext compatibility
-export const runtime = 'edge';

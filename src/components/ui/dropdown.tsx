@@ -98,31 +98,48 @@ export interface DropdownItemProps extends React.ButtonHTMLAttributes<HTMLButton
   icon?: React.ReactNode;
   destructive?: boolean;
   selected?: boolean;
+  href?: string;
 }
 
 const DropdownItem = React.forwardRef<HTMLButtonElement, DropdownItemProps>(
-  ({ className, icon, destructive = false, selected = false, children, ...props }, ref) => {
+  ({ className, icon, destructive = false, selected = false, href, children, ...props }, ref) => {
+    const itemClasses = cn(
+      'w-full flex items-center gap-2 px-3 py-2',
+      'text-sm text-start rounded-md',
+      'transition-colors duration-150',
+      destructive
+        ? 'text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950'
+        : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500',
+      'disabled:opacity-50 disabled:pointer-events-none',
+      className
+    );
+
+    const content = (
+      <>
+        {icon && <span className="shrink-0">{icon}</span>}
+        <span className="flex-1">{children}</span>
+        {selected && <Check size={16} className="shrink-0" />}
+      </>
+    );
+
+    if (href) {
+      return (
+        <a href={href} className={itemClasses} role="menuitem">
+          {content}
+        </a>
+      );
+    }
+
     return (
       <button
         ref={ref}
         type="button"
         role="menuitem"
-        className={cn(
-          'w-full flex items-center gap-2 px-3 py-2',
-          'text-sm text-start rounded-md',
-          'transition-colors duration-150',
-          destructive
-            ? 'text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950'
-            : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500',
-          'disabled:opacity-50 disabled:pointer-events-none',
-          className
-        )}
+        className={itemClasses}
         {...props}
       >
-        {icon && <span className="shrink-0">{icon}</span>}
-        <span className="flex-1">{children}</span>
-        {selected && <Check size={16} className="shrink-0" />}
+        {content}
       </button>
     );
   }

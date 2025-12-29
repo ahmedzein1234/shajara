@@ -4,36 +4,38 @@
  */
 
 import { randomUUID } from 'crypto';
-import type {
-  Person,
-  CreatePersonInput,
-  UpdatePersonInput,
-  DbPerson,
+import type { D1Database } from '@cloudflare/workers-types';
+import { buildSafeUpdate } from './safe-update';
+import {
+  type Person,
+  type CreatePersonInput,
+  type UpdatePersonInput,
+  type DbPerson,
   dbToPerson,
   personToDB,
-  Relationship,
-  CreateRelationshipInput,
-  UpdateRelationshipInput,
-  RelationshipType,
-  PersonWithRelationship,
-  ParentChildRelationship,
-  SpouseRelationship,
-  Event,
-  CreateEventInput,
-  UpdateEventInput,
-  PersonSearchParams,
-  PersonSearchResult,
+  type Relationship,
+  type CreateRelationshipInput,
+  type UpdateRelationshipInput,
+  type RelationshipType,
+  type PersonWithRelationship,
+  type ParentChildRelationship,
+  type SpouseRelationship,
+  type Event,
+  type CreateEventInput,
+  type UpdateEventInput,
+  type PersonSearchParams,
+  type PersonSearchResult,
   buildFullNameAr,
-  Tree,
-  CreateTreeInput,
-  UpdateTreeInput,
-  DbTree,
+  type Tree,
+  type CreateTreeInput,
+  type UpdateTreeInput,
+  type DbTree,
   dbToTree,
   treeToDB,
-  Media,
-  PersonMedia,
-  CreatePersonMediaInput,
-  PersonWithMedia,
+  type Media,
+  type PersonMedia,
+  type CreatePersonMediaInput,
+  type PersonWithMedia,
 } from './schema';
 
 // =====================================================
@@ -157,20 +159,13 @@ export async function updatePerson(
     updated_at: now,
   });
 
-  const setParts: string[] = [];
-  const values: any[] = [];
+  const safeUpdate = buildSafeUpdate('persons', dbPerson);
 
-  Object.entries(dbPerson).forEach(([key, value]) => {
-    if (value !== undefined && key !== 'id') {
-      setParts.push(`${key} = ?`);
-      values.push(value);
-    }
-  });
-
-  if (setParts.length === 0) {
+  if (!safeUpdate) {
     return existing;
   }
 
+  const { setParts, values } = safeUpdate;
   values.push(personId);
 
   await db
@@ -460,17 +455,9 @@ export async function updateRelationship(
   relationshipId: string,
   input: UpdateRelationshipInput
 ): Promise<Relationship> {
-  const setParts: string[] = [];
-  const values: any[] = [];
+  const safeUpdate = buildSafeUpdate('relationships', input as Record<string, unknown>);
 
-  Object.entries(input).forEach(([key, value]) => {
-    if (value !== undefined) {
-      setParts.push(`${key} = ?`);
-      values.push(value);
-    }
-  });
-
-  if (setParts.length === 0) {
+  if (!safeUpdate) {
     const existing = await db
       .prepare('SELECT * FROM relationships WHERE id = ?')
       .bind(relationshipId)
@@ -483,6 +470,7 @@ export async function updateRelationship(
     return existing;
   }
 
+  const { setParts, values } = safeUpdate;
   values.push(relationshipId);
 
   await db
@@ -688,17 +676,9 @@ export async function updateTree(db: D1Database, treeId: string, input: UpdateTr
     updated_at: now,
   });
 
-  const setParts: string[] = [];
-  const values: any[] = [];
+  const safeUpdate = buildSafeUpdate('trees', dbTree);
 
-  Object.entries(dbTree).forEach(([key, value]) => {
-    if (value !== undefined && key !== 'id') {
-      setParts.push(`${key} = ?`);
-      values.push(value);
-    }
-  });
-
-  if (setParts.length === 0) {
+  if (!safeUpdate) {
     const existing = await getTreeById(db, treeId);
     if (!existing) {
       throw new Error('Tree not found');
@@ -706,6 +686,7 @@ export async function updateTree(db: D1Database, treeId: string, input: UpdateTr
     return existing;
   }
 
+  const { setParts, values } = safeUpdate;
   values.push(treeId);
 
   await db

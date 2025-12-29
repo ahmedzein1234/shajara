@@ -37,21 +37,55 @@ const nextConfig: NextConfig = {
       {
         source: '/:path*',
         headers: [
+          // DNS prefetch for performance
           {
             key: 'X-DNS-Prefetch-Control',
             value: 'on',
           },
+          // Prevent clickjacking
           {
             key: 'X-Frame-Options',
             value: 'SAMEORIGIN',
           },
+          // Prevent MIME type sniffing
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff',
           },
+          // Stricter referrer policy
           {
             key: 'Referrer-Policy',
-            value: 'origin-when-cross-origin',
+            value: 'strict-origin-when-cross-origin',
+          },
+          // HTTP Strict Transport Security - enforce HTTPS
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
+          },
+          // Content Security Policy - restrict resource loading
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: https: blob:",
+              "font-src 'self' data:",
+              "connect-src 'self' https://openrouter.ai https://api.mapbox.com https://*.tiles.mapbox.com",
+              "frame-ancestors 'self'",
+              "base-uri 'self'",
+              "form-action 'self'",
+            ].join('; '),
+          },
+          // Permissions Policy - restrict browser features
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(self), geolocation=(), payment=()',
+          },
+          // Prevent XSS in older browsers
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
           },
         ],
       },
@@ -76,15 +110,6 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  // TypeScript configuration - temporarily ignore to deploy
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-
-  // ESLint configuration
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
 
   // PoweredByHeader
   poweredByHeader: false,

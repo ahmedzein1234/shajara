@@ -143,7 +143,6 @@ export function FamilyMap({
     center: initialCenter ? [initialCenter.lng, initialCenter.lat] : undefined,
     zoom: initialZoom,
     rtl: locale === 'ar',
-    locale,
   });
 
   // Convert persons to markers

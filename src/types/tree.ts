@@ -74,7 +74,7 @@ export interface ConnectionLine {
 /**
  * Layout algorithm type
  */
-export type LayoutType = 'descendants' | 'ancestors' | 'hourglass' | 'full';
+export type LayoutType = 'descendants' | 'ancestors' | 'hourglass' | 'full' | 'fan';
 
 /**
  * Layout direction for RTL support

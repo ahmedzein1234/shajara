@@ -74,3 +74,25 @@ temp/
 *.sqlite
 *.sqlite3
 .db/
+
+# Build artifacts
+deploy-output/
+_next/
+_worker.js/
+cdn-cgi/
+*.rsc
+*.rsc.json
+__next_data_catchall.json
+_headers
+_routes.json
+404.html
+500.html
+_not-found.html
+_not-found.rsc
+_app.rsc.json
+_document.rsc.json
+_error.rsc.json
+nul
+
+# Backup temp files
+.backup-temp/

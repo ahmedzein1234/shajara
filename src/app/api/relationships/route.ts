@@ -22,15 +22,8 @@ import {
   UnauthorizedError,
   BadRequestError,
 } from '@/lib/api/errors';
-
-// Mock user ID - replace with actual authentication
-function getCurrentUserId(request: NextRequest): string | null {
-  const authHeader = request.headers.get('x-user-id');
-  const url = new URL(request.url);
-  const queryUserId = url.searchParams.get('user_id');
-
-  return authHeader || queryUserId;
-}
+import { getCurrentUserId } from '@/lib/auth/session';
+import { invalidateTreeCache, getKVFromEnv } from '@/lib/cache/kv';
 
 /**
  * GET /api/relationships?tree_id=uuid
@@ -77,15 +70,16 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const userId = getCurrentUserId(request);
+    const db = getDatabase(request);
+    const env = (request as unknown as { env?: unknown }).env;
+    const kv = getKVFromEnv(env);
+    const userId = await getCurrentUserId(db);
     if (!userId) {
-      throw new UnauthorizedError('User ID is required');
+      throw new UnauthorizedError('Authentication required');
     }
 
     const body = await parseJsonBody(request);
     const validatedInput = validateCreateRelationship(body);
-
-    const db = getDatabase(request);
 
     // Verify user owns the tree
     const isOwner = await verifyTreeOwnership(db, validatedInput.tree_id, userId);
@@ -95,11 +89,11 @@ export async function POST(request: NextRequest) {
 
     const relationship = await createRelationship(db, validatedInput);
 
+    // Invalidate tree cache since relationships changed
+    invalidateTreeCache(kv, validatedInput.tree_id).catch(console.error);
+
     return createdResponse(relationship);
   } catch (error) {
     return handleError(error);
   }
 }
-
-// Removed edge runtime for OpenNext compatibility
-export const runtime = 'edge';

@@ -170,7 +170,7 @@ export interface MapInitOptions extends Partial<MapOptions> {
   center?: LngLatLike;
   zoom?: number;
   rtl?: boolean;
-  locale?: 'ar' | 'en';
+  appLocale?: 'ar' | 'en';
 }
 
 /**

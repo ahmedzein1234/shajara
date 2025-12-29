@@ -67,11 +67,26 @@ const config: Config = {
           900: '#1F1303',
         },
         heritage: {
-          cream: '#F5F0E8',
+          cream: '#FAF8F5',      // Warm cream (main background)
           sand: '#E8D4B8',
           terracotta: '#B85C3C',
           navy: '#1A3A4A',
           turquoise: '#1B7F7E',
+          rose: '#B85C6C',       // Heritage rose for females
+          blue: '#2B5B84',       // Heritage blue for males
+        },
+        // Warm color palette for human-centered design
+        warm: {
+          50: '#FEFDFB',         // Lightest cream
+          100: '#FAF8F5',        // Main background cream
+          200: '#F5F0E8',        // Slightly darker cream
+          300: '#E8D4B8',        // Sand
+          400: '#D4C4A8',        // Warm tan
+          500: '#B8A88C',        // Warm brown
+          600: '#8C7A60',        // Medium brown
+          700: '#5C4A3A',        // Dark brown
+          800: '#3D322A',        // Very dark brown
+          900: '#1F1A15',        // Almost black
         },
         neutral: {
           50: '#fafafa',
@@ -121,13 +136,18 @@ const config: Config = {
         '4xl': '2rem',
       },
 
-      // Box shadow for elevation
+      // Box shadow for elevation - enhanced with warm tones
       boxShadow: {
         'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',
         'card': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
         'card-hover': '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)',
+        'card-warm': '0 4px 12px rgba(184, 92, 60, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04)',
+        'card-warm-hover': '0 12px 32px rgba(184, 92, 60, 0.12), 0 4px 8px rgba(0, 0, 0, 0.06)',
         'islamic': '0 4px 20px rgba(27, 127, 126, 0.15)',
         'gold': '0 4px 15px rgba(212, 175, 55, 0.25)',
+        'gold-glow': '0 0 20px rgba(212, 175, 55, 0.4), 0 4px 12px rgba(212, 175, 55, 0.2)',
+        'warm-glow': '0 0 24px rgba(184, 92, 60, 0.15), 0 8px 16px rgba(0, 0, 0, 0.08)',
+        'glass': '0 8px 32px rgba(0, 0, 0, 0.12)',
       },
 
       // Enhanced animation keyframes
@@ -213,6 +233,14 @@ const config: Config = {
         'gradient-islamic': 'linear-gradient(135deg, #1B7F7E 0%, #10b981 50%, #0d9488 100%)',
         'gradient-gold': 'linear-gradient(135deg, #D4AF37 0%, #F5D742 50%, #D4AF37 100%)',
         'gradient-heritage': 'linear-gradient(135deg, #1A3A4A 0%, #1B7F7E 50%, #B85C3C 100%)',
+        // Warm gradients for human-centered design
+        'gradient-warm': 'linear-gradient(135deg, #FAF8F5 0%, #F5EDE4 50%, #FAF8F5 100%)',
+        'gradient-warm-subtle': 'linear-gradient(180deg, #FAF8F5 0%, #FEFDFB 100%)',
+        'gradient-male': 'linear-gradient(135deg, #2B5B84 0%, #1A3A4A 100%)',
+        'gradient-female': 'linear-gradient(135deg, #B85C6C 0%, #8B4555 100%)',
+        'gradient-card-male': 'linear-gradient(180deg, #EBF4FF 0%, #FAF8F5 100%)',
+        'gradient-card-female': 'linear-gradient(180deg, #FDF2F4 0%, #FAF8F5 100%)',
+        'gradient-deceased': 'linear-gradient(180deg, #F5F0E8 0%, #FAF8F5 100%)',
       },
     },
   },

@@ -13,15 +13,8 @@ import {
   ForbiddenError,
   UnauthorizedError,
 } from '@/lib/api/errors';
-
-// Mock user ID - replace with actual authentication
-function getCurrentUserId(request: NextRequest): string | null {
-  const authHeader = request.headers.get('x-user-id');
-  const url = new URL(request.url);
-  const queryUserId = url.searchParams.get('user_id');
-
-  return authHeader || queryUserId;
-}
+import { getCurrentUserId } from '@/lib/auth/session';
+import { invalidateTreeCache, getKVFromEnv } from '@/lib/cache/kv';
 
 /**
  * POST /api/persons
@@ -45,15 +38,16 @@ function getCurrentUserId(request: NextRequest): string | null {
  */
 export async function POST(request: NextRequest) {
   try {
-    const userId = getCurrentUserId(request);
+    const db = getDatabase(request);
+    const env = (request as unknown as { env?: unknown }).env;
+    const kv = getKVFromEnv(env);
+    const userId = await getCurrentUserId(db);
     if (!userId) {
-      throw new UnauthorizedError('User ID is required');
+      throw new UnauthorizedError('Authentication required');
     }
 
     const body = await parseJsonBody(request);
     const validatedInput = validateCreatePerson(body);
-
-    const db = getDatabase(request);
 
     // Verify user owns the tree
     const isOwner = await verifyTreeOwnership(db, validatedInput.tree_id, userId);
@@ -63,11 +57,11 @@ export async function POST(request: NextRequest) {
 
     const person = await createPerson(db, validatedInput);
 
+    // Invalidate tree cache since persons list changed
+    invalidateTreeCache(kv, validatedInput.tree_id).catch(console.error);
+
     return createdResponse(person);
   } catch (error) {
     return handleError(error);
   }
 }
-
-// Removed edge runtime for OpenNext compatibility
-export const runtime = 'edge';

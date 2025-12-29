@@ -213,5 +213,3 @@ export default async function TreeListPage({
     </div>
   );
 }
-
-export const runtime = 'edge';

@@ -14,6 +14,28 @@ import type {
 } from '../db/schema';
 
 // =====================================================
+// SECURITY CONSTANTS
+// =====================================================
+
+// Maximum request body size (100KB for JSON requests)
+export const MAX_REQUEST_SIZE = 100 * 1024;
+
+// Maximum text field lengths
+export const MAX_LENGTHS = {
+  name: 200,
+  givenName: 100,
+  familyName: 100,
+  patronymicChain: 500,
+  fullName: 300,
+  description: 2000,
+  notes: 5000,
+  place: 200,
+  url: 2000,
+  searchQuery: 200,
+  aiInput: 10000,
+} as const;
+
+// =====================================================
 // VALIDATION HELPERS
 // =====================================================
 
@@ -25,6 +47,42 @@ export class ValidationError extends Error {
   ) {
     super(message);
     this.name = 'ValidationError';
+  }
+}
+
+/**
+ * Sanitize text input to prevent XSS in stored data
+ * Removes or escapes potentially dangerous characters
+ */
+export function sanitizeText(text: string): string {
+  if (!text) return text;
+
+  // Remove null bytes
+  let sanitized = text.replace(/\0/g, '');
+
+  // Remove control characters (except newlines and tabs)
+  sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+
+  // Limit length to prevent DoS
+  if (sanitized.length > MAX_LENGTHS.notes) {
+    sanitized = sanitized.substring(0, MAX_LENGTHS.notes);
+  }
+
+  return sanitized;
+}
+
+/**
+ * Validate URL format and protocol
+ */
+export function isValidUrl(url: string): boolean {
+  if (!url || url.length > MAX_LENGTHS.url) return false;
+
+  try {
+    const parsed = new URL(url);
+    // Only allow https and data URLs for images
+    return parsed.protocol === 'https:' || parsed.protocol === 'data:';
+  } catch {
+    return false;
   }
 }
 
@@ -84,8 +142,8 @@ export function validateCreateTree(data: unknown): CreateTreeInput {
     throw new ValidationError('name cannot be empty', 'name');
   }
 
-  if (input.name.length > 200) {
-    throw new ValidationError('name cannot exceed 200 characters', 'name');
+  if (input.name.length > MAX_LENGTHS.name) {
+    throw new ValidationError(`name cannot exceed ${MAX_LENGTHS.name} characters`, 'name');
   }
 
   if (input.description !== undefined && input.description !== null) {
@@ -103,8 +161,8 @@ export function validateCreateTree(data: unknown): CreateTreeInput {
 
   return {
     user_id: input.user_id,
-    name: input.name.trim(),
-    description: input.description?.trim() || null,
+    name: sanitizeText(input.name.trim()),
+    description: input.description ? sanitizeText(input.description.trim()) : null,
     is_public: input.is_public ?? false,
   };
 }
@@ -142,8 +200,8 @@ export function validateUpdateTree(data: unknown): UpdateTreeInput {
   }
 
   return {
-    ...(input.name !== undefined && { name: input.name.trim() }),
-    ...(input.description !== undefined && { description: input.description?.trim() || null }),
+    ...(input.name !== undefined && { name: sanitizeText(input.name.trim()) }),
+    ...(input.description !== undefined && { description: input.description ? sanitizeText(input.description.trim()) : null }),
     ...(input.is_public !== undefined && { is_public: input.is_public }),
   };
 }
@@ -241,25 +299,44 @@ export function validateCreatePerson(data: unknown): CreatePersonInput {
     throw new ValidationError('is_living must be a boolean', 'is_living');
   }
 
+  // Validate photo URL if provided
+  if (input.photo_url && !isValidUrl(input.photo_url)) {
+    throw new ValidationError('photo_url must be a valid HTTPS URL', 'photo_url');
+  }
+
+  // Validate text lengths
+  if (input.given_name && input.given_name.length > MAX_LENGTHS.givenName) {
+    throw new ValidationError(`given_name cannot exceed ${MAX_LENGTHS.givenName} characters`, 'given_name');
+  }
+  if (input.family_name && input.family_name.length > MAX_LENGTHS.familyName) {
+    throw new ValidationError(`family_name cannot exceed ${MAX_LENGTHS.familyName} characters`, 'family_name');
+  }
+  if (input.patronymic_chain && input.patronymic_chain.length > MAX_LENGTHS.patronymicChain) {
+    throw new ValidationError(`patronymic_chain cannot exceed ${MAX_LENGTHS.patronymicChain} characters`, 'patronymic_chain');
+  }
+  if (input.notes && input.notes.length > MAX_LENGTHS.notes) {
+    throw new ValidationError(`notes cannot exceed ${MAX_LENGTHS.notes} characters`, 'notes');
+  }
+
   return {
     tree_id: input.tree_id,
-    given_name: input.given_name.trim(),
-    patronymic_chain: input.patronymic_chain?.trim() || null,
-    family_name: input.family_name?.trim() || null,
-    full_name_ar: input.full_name_ar?.trim() || null,
-    full_name_en: input.full_name_en?.trim() || null,
+    given_name: sanitizeText(input.given_name.trim()),
+    patronymic_chain: input.patronymic_chain ? sanitizeText(input.patronymic_chain.trim()) : null,
+    family_name: input.family_name ? sanitizeText(input.family_name.trim()) : null,
+    full_name_ar: input.full_name_ar ? sanitizeText(input.full_name_ar.trim()) : null,
+    full_name_en: input.full_name_en ? sanitizeText(input.full_name_en.trim()) : null,
     gender: input.gender,
     birth_date: input.birth_date?.trim() || null,
-    birth_place: input.birth_place?.trim() || null,
+    birth_place: input.birth_place ? sanitizeText(input.birth_place.trim()) : null,
     birth_place_lat: input.birth_place_lat ?? null,
     birth_place_lng: input.birth_place_lng ?? null,
     death_date: input.death_date?.trim() || null,
-    death_place: input.death_place?.trim() || null,
+    death_place: input.death_place ? sanitizeText(input.death_place.trim()) : null,
     death_place_lat: input.death_place_lat ?? null,
     death_place_lng: input.death_place_lng ?? null,
     is_living: input.is_living ?? true,
     photo_url: input.photo_url?.trim() || null,
-    notes: input.notes?.trim() || null,
+    notes: input.notes ? sanitizeText(input.notes.trim()) : null,
   };
 }
 
@@ -301,7 +378,7 @@ export function validateUpdatePerson(data: unknown): UpdatePersonInput {
       if (value !== null && typeof value !== 'string') {
         throw new ValidationError(`${field} must be a string`, field);
       }
-      (result as any)[field] = value === null ? null : (value as string).trim();
+      (result as any)[field] = value === null ? null : sanitizeText((value as string).trim());
     }
   }
 
@@ -408,9 +485,9 @@ export function validateCreateRelationship(data: unknown): CreateRelationshipInp
     person2_id: input.person2_id,
     relationship_type: input.relationship_type,
     marriage_date: input.marriage_date?.trim() || null,
-    marriage_place: input.marriage_place?.trim() || null,
+    marriage_place: input.marriage_place ? sanitizeText(input.marriage_place.trim()) : null,
     divorce_date: input.divorce_date?.trim() || null,
-    divorce_place: input.divorce_place?.trim() || null,
+    divorce_place: input.divorce_place ? sanitizeText(input.divorce_place.trim()) : null,
   };
 }
 
@@ -440,7 +517,10 @@ export function validateSearchParams(params: URLSearchParams): SearchParams {
 
   const query = params.get('query');
   if (query) {
-    result.query = query.trim();
+    if (query.length > MAX_LENGTHS.searchQuery) {
+      throw new ValidationError(`query cannot exceed ${MAX_LENGTHS.searchQuery} characters`, 'query');
+    }
+    result.query = sanitizeText(query.trim());
   }
 
   const gender = params.get('gender');
@@ -478,6 +558,22 @@ export function validateSearchParams(params: URLSearchParams): SearchParams {
   }
 
   return result;
+}
+
+// =====================================================
+// AI INPUT VALIDATION
+// =====================================================
+
+export function validateAIInput(input: string): string {
+  if (!input || typeof input !== 'string') {
+    throw new ValidationError('AI input is required and must be a string', 'input');
+  }
+
+  if (input.length > MAX_LENGTHS.aiInput) {
+    throw new ValidationError(`AI input cannot exceed ${MAX_LENGTHS.aiInput} characters`, 'input');
+  }
+
+  return sanitizeText(input.trim());
 }
 
 // =====================================================

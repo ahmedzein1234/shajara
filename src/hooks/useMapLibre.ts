@@ -123,7 +123,7 @@ export function useMapLibre(options: MapInitOptions): UseMapLibreReturn {
         new maplibregl.NavigationControl({
           visualizePitch: true,
         }),
-        options.locale === 'ar' ? 'top-left' : 'top-right'
+        options.rtl ? 'top-left' : 'top-right'
       );
 
       // Add scale control
@@ -197,7 +197,7 @@ export function useMapLibre(options: MapInitOptions): UseMapLibreReturn {
 
       // Create popup
       const popupContent = `
-        <div class="p-3 min-w-[200px]" dir="${options.locale === 'ar' ? 'rtl' : 'ltr'}">
+        <div class="p-3 min-w-[200px]" dir="${options.rtl ? 'rtl' : 'ltr'}">
           <h3 class="font-semibold text-base mb-2">
             ${personMarker.person.full_name_ar || personMarker.person.given_name}
           </h3>
@@ -228,7 +228,7 @@ export function useMapLibre(options: MapInitOptions): UseMapLibreReturn {
       // Store marker reference
       markersRef.current.set(personMarker.id, marker);
     },
-    [options.theme, options.locale]
+    [options.theme, options.rtl]
   );
 
   // =====================================================

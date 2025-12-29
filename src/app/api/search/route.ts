@@ -52,6 +52,3 @@ export async function GET(request: NextRequest) {
     return handleError(error);
   }
 }
-
-// Removed edge runtime for OpenNext compatibility
-export const runtime = 'edge';

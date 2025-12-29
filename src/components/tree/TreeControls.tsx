@@ -19,6 +19,8 @@ import {
   Users,
   User,
   Layers,
+  PieChart,
+  Keyboard,
 } from 'lucide-react';
 import { TreeNode, LayoutType, ExportFormat } from '@/types/tree';
 import { searchNodes } from '@/hooks/useTreeLayout';
@@ -47,6 +49,9 @@ interface TreeControlsProps {
   direction: 'rtl' | 'ltr';
   onDirectionToggle?: () => void;
 
+  // Keyboard shortcuts
+  onShowShortcuts?: () => void;
+
   locale?: 'ar' | 'en';
   className?: string;
 }
@@ -65,6 +70,7 @@ export function TreeControls({
   onExport,
   direction,
   onDirectionToggle,
+  onShowShortcuts,
   locale = 'ar',
   className,
 }: TreeControlsProps) {
@@ -101,52 +107,56 @@ export function TreeControls({
   return (
     <div
       className={cn(
-        'fixed top-6 right-6 z-10',
+        'fixed top-6 end-6 z-10', // RTL-aware positioning
         'flex flex-col gap-3',
-        locale === 'ar' && 'right-auto left-6',
+        'animate-slide-in-right', // Entrance animation
         className
       )}
       dir={locale === 'ar' ? 'rtl' : 'ltr'}
+      style={{
+        animationDuration: '0.4s',
+        animationTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
+      }}
     >
-      {/* Search Bar */}
+      {/* Search Bar - warm cream background */}
       <div className="relative">
-        <div className="flex items-center gap-2 bg-white rounded-lg shadow-lg border border-gray-200 px-3 py-2">
-          <Search size={18} className="text-gray-400" />
+        <div className="flex items-center gap-2 bg-warm-100 rounded-lg shadow-card-warm border border-warm-300 px-3 py-2">
+          <Search size={18} className="text-warm-500" />
           <input
             ref={searchInputRef}
             type="text"
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
             placeholder={t.searchPlaceholder}
-            className="outline-none text-sm w-64 placeholder:text-gray-400"
+            className="outline-none text-sm w-64 placeholder:text-warm-400 bg-transparent text-warm-800"
             dir={locale === 'ar' ? 'rtl' : 'ltr'}
           />
           {searchQuery && (
             <button
               onClick={() => handleSearch('')}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-warm-400 hover:text-warm-600 transition-colors"
             >
               <RotateCcw size={16} />
             </button>
           )}
         </div>
 
-        {/* Search Results Dropdown */}
+        {/* Search Results Dropdown - warm styling */}
         {showSearchResults && searchResults.length > 0 && (
-          <div className="absolute top-full mt-2 w-full bg-white rounded-lg shadow-xl border border-gray-200 max-h-80 overflow-y-auto">
+          <div className="absolute top-full mt-2 w-full bg-warm-50 rounded-lg shadow-card-warm-hover border border-warm-200 max-h-80 overflow-y-auto">
             {searchResults.map((node) => (
               <button
                 key={node.id}
                 onClick={() => handleSelectResult(node)}
-                className="w-full px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 text-start transition-colors"
+                className="w-full px-4 py-3 hover:bg-warm-100 border-b border-warm-100 last:border-b-0 text-start transition-colors"
               >
-                <div className="font-medium text-sm text-gray-900">
+                <div className="font-medium text-sm text-warm-800">
                   {locale === 'ar'
                     ? node.person.full_name_ar || node.person.given_name
                     : node.person.full_name_en || node.person.given_name}
                 </div>
                 {node.person.birth_date && (
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="text-xs text-warm-500 mt-1">
                     {new Date(node.person.birth_date).getFullYear()}
                     {node.person.death_date && ` - ${new Date(node.person.death_date).getFullYear()}`}
                   </div>
@@ -157,14 +167,14 @@ export function TreeControls({
         )}
 
         {showSearchResults && searchResults.length === 0 && searchQuery && (
-          <div className="absolute top-full mt-2 w-full bg-white rounded-lg shadow-xl border border-gray-200 px-4 py-3 text-sm text-gray-500 text-center">
+          <div className="absolute top-full mt-2 w-full bg-warm-50 rounded-lg shadow-card-warm border border-warm-200 px-4 py-3 text-sm text-warm-500 text-center">
             {t.noResults}
           </div>
         )}
       </div>
 
-      {/* Main Controls */}
-      <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-2">
+      {/* Main Controls - warm heritage styling */}
+      <div className="bg-warm-100 rounded-lg shadow-card-warm border border-warm-300 p-2">
         <div className="flex flex-col gap-2">
           {/* Zoom Controls */}
           <div className="flex items-center gap-1">
@@ -175,7 +185,7 @@ export function TreeControls({
               tooltip={t.zoomOut}
               locale={locale}
             />
-            <div className="px-3 py-1 text-xs font-medium text-gray-600 min-w-[60px] text-center">
+            <div className="px-3 py-1 text-xs font-medium text-warm-600 min-w-[60px] text-center">
               {zoomPercent}%
             </div>
             <ControlButton
@@ -185,7 +195,7 @@ export function TreeControls({
               tooltip={t.zoomIn}
               locale={locale}
             />
-            <div className="w-px h-6 bg-gray-200 mx-1" />
+            <div className="w-px h-6 bg-warm-300 mx-1" />
             <ControlButton
               icon={<Maximize2 size={18} />}
               onClick={onFitView}
@@ -201,8 +211,8 @@ export function TreeControls({
           </div>
 
           {/* Layout Type Selector */}
-          <div className="border-t border-gray-200 pt-2">
-            <div className="text-xs font-medium text-gray-600 mb-2 px-1">{t.viewMode}</div>
+          <div className="border-t border-warm-200 pt-2">
+            <div className="text-xs font-medium text-warm-600 mb-2 px-1">{t.viewMode}</div>
             <div className="grid grid-cols-2 gap-1">
               <LayoutButton
                 active={layoutType === 'descendants'}
@@ -228,12 +238,18 @@ export function TreeControls({
                 icon={<Maximize2 size={16} />}
                 label={t.full}
               />
+              <LayoutButton
+                active={layoutType === 'fan'}
+                onClick={() => onLayoutChange('fan')}
+                icon={<PieChart size={16} />}
+                label={t.fan}
+              />
             </div>
           </div>
 
           {/* Direction Toggle */}
           {onDirectionToggle && (
-            <div className="border-t border-gray-200 pt-2">
+            <div className="border-t border-warm-200 pt-2">
               <ControlButton
                 icon={direction === 'rtl' ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
                 onClick={onDirectionToggle}
@@ -247,7 +263,7 @@ export function TreeControls({
 
           {/* Export */}
           {onExport && (
-            <div className="border-t border-gray-200 pt-2 relative">
+            <div className="border-t border-warm-200 pt-2 relative">
               <ControlButton
                 icon={<Download size={18} />}
                 onClick={() => setShowExportMenu(!showExportMenu)}
@@ -258,13 +274,27 @@ export function TreeControls({
               />
 
               {showExportMenu && (
-                <div className="absolute bottom-full mb-2 right-0 bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[150px]">
+                <div className="absolute bottom-full mb-2 end-0 bg-warm-50 rounded-lg shadow-card-warm-hover border border-warm-200 py-1 min-w-[150px]">
                   <ExportButton format="png" onClick={onExport} onClose={() => setShowExportMenu(false)} />
                   <ExportButton format="jpeg" onClick={onExport} onClose={() => setShowExportMenu(false)} />
                   <ExportButton format="svg" onClick={onExport} onClose={() => setShowExportMenu(false)} />
                   <ExportButton format="pdf" onClick={onExport} onClose={() => setShowExportMenu(false)} />
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Keyboard Shortcuts */}
+          {onShowShortcuts && (
+            <div className="border-t border-warm-200 pt-2">
+              <ControlButton
+                icon={<Keyboard size={18} />}
+                onClick={onShowShortcuts}
+                tooltip={t.shortcuts}
+                locale={locale}
+                fullWidth
+                label={t.shortcuts}
+              />
             </div>
           )}
         </div>
@@ -298,10 +328,10 @@ function ControlButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'p-2 rounded-md transition-colors',
-        'hover:bg-gray-100 active:bg-gray-200',
-        'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent',
-        'text-gray-700',
+        'p-2 rounded-md transition-all duration-200',
+        'hover:bg-warm-200 active:bg-warm-300 hover:scale-[1.02] active:scale-[0.98]',
+        'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:scale-100',
+        'text-warm-700',
         fullWidth && 'w-full flex items-center justify-center gap-2'
       )}
       title={tooltip}
@@ -330,12 +360,12 @@ function LayoutButton({
     <button
       onClick={onClick}
       className={cn(
-        'px-2 py-1.5 rounded-md transition-all',
+        'px-2 py-1.5 rounded-md transition-all duration-200',
         'flex items-center justify-center gap-1.5',
         'text-xs font-medium',
         active
-          ? 'bg-primary-100 text-primary-700 border border-primary-300'
-          : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-transparent'
+          ? 'bg-heritage-turquoise/10 text-heritage-turquoise border border-heritage-turquoise/30'
+          : 'bg-warm-50 text-warm-600 hover:bg-warm-200 hover:text-warm-700 border border-transparent'
       )}
     >
       {icon}
@@ -364,7 +394,7 @@ function ExportButton({
   return (
     <button
       onClick={handleClick}
-      className="w-full px-4 py-2 text-start text-sm hover:bg-gray-100 transition-colors"
+      className="w-full px-4 py-2 text-start text-sm text-warm-700 hover:bg-warm-100 transition-colors"
     >
       {format.toUpperCase()}
     </button>
@@ -387,9 +417,11 @@ const translations = {
     ancestors: 'الأجداد',
     hourglass: 'الساعة الرملية',
     full: 'كامل',
+    fan: 'مروحة',
     switchToRtl: 'التبديل إلى RTL',
     switchToLtr: 'التبديل إلى LTR',
     export: 'تصدير',
+    shortcuts: 'اختصارات',
   },
   en: {
     searchPlaceholder: 'Search for a person...',
@@ -403,8 +435,10 @@ const translations = {
     ancestors: 'Ancestors',
     hourglass: 'Hourglass',
     full: 'Full',
+    fan: 'Fan Chart',
     switchToRtl: 'Switch to RTL',
     switchToLtr: 'Switch to LTR',
     export: 'Export',
+    shortcuts: 'Shortcuts',
   },
 };
