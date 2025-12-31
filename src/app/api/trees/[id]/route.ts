@@ -12,7 +12,6 @@ import {
   getTreeWithRelationships,
   updateTree,
   deleteTree,
-  verifyTreeOwnership,
 } from '@/lib/api/db';
 import { validateUpdateTree } from '@/lib/api/validation';
 import {
@@ -32,6 +31,7 @@ import {
   getKVFromEnv,
   type CachedTreeData,
 } from '@/lib/cache/kv';
+import { getUserTreePermissions, requireTreePermission } from '@/lib/permissions/api';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -55,10 +55,15 @@ export async function GET(request: NextRequest, context: RouteContext) {
     // Try to get from cache first
     const cached = await getCachedTree(kv, id);
     if (cached) {
-      // Verify access for cached data
-      const isOwner = userId && (await verifyTreeOwnership(db, id, userId));
-      if (!cached.tree.is_public && !isOwner) {
-        throw new ForbiddenError('You do not have access to this tree');
+      // Verify access for cached data using permissions
+      if (!cached.tree.is_public) {
+        if (!userId) {
+          throw new ForbiddenError('You do not have access to this tree');
+        }
+        const { permissions } = await getUserTreePermissions(db, userId, id);
+        if (!permissions) {
+          throw new ForbiddenError('You do not have access to this tree');
+        }
       }
 
       // Return cached data with cache hit indicator
@@ -75,10 +80,15 @@ export async function GET(request: NextRequest, context: RouteContext) {
       throw new NotFoundError('Tree not found');
     }
 
-    // Verify access
-    const isOwner = userId && (await verifyTreeOwnership(db, id, userId));
-    if (!treeData.tree.is_public && !isOwner) {
-      throw new ForbiddenError('You do not have access to this tree');
+    // Verify access using permissions
+    if (!treeData.tree.is_public) {
+      if (!userId) {
+        throw new ForbiddenError('You do not have access to this tree');
+      }
+      const { permissions } = await getUserTreePermissions(db, userId, id);
+      if (!permissions) {
+        throw new ForbiddenError('You do not have access to this tree');
+      }
     }
 
     // Prepare response data
@@ -127,11 +137,8 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       throw new UnauthorizedError('Authentication required');
     }
 
-    // Verify ownership
-    const isOwner = await verifyTreeOwnership(db, id, userId);
-    if (!isOwner) {
-      throw new ForbiddenError('You do not have permission to update this tree');
-    }
+    // Check permission to manage tree settings
+    await requireTreePermission(db, userId, id, 'canManageSettings');
 
     const body = await parseJsonBody(request);
     const validatedInput = validateUpdateTree(body);
@@ -166,11 +173,8 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       throw new UnauthorizedError('Authentication required');
     }
 
-    // Verify ownership
-    const isOwner = await verifyTreeOwnership(db, id, userId);
-    if (!isOwner) {
-      throw new ForbiddenError('You do not have permission to delete this tree');
-    }
+    // Check permission to delete tree
+    await requireTreePermission(db, userId, id, 'canDeleteTree');
 
     const deleted = await deleteTree(db, id);
 

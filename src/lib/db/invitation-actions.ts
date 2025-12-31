@@ -3,6 +3,11 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { getSession } from '@/lib/auth/actions';
 
+import type { TreeRole } from '@/lib/permissions';
+
+// Role types now unified with permission system: guest, member, manager, owner
+export type InvitationRole = Exclude<TreeRole, 'owner'>; // Can't invite as owner
+
 export interface TreeInvitation {
   id: string;
   tree_id: string;
@@ -10,7 +15,7 @@ export interface TreeInvitation {
   invitee_email: string | null;
   invitee_phone: string | null;
   invite_code: string;
-  role: 'viewer' | 'editor' | 'admin';
+  role: InvitationRole;
   status: 'pending' | 'accepted' | 'declined' | 'expired';
   message: string | null;
   expires_at: number;
@@ -28,7 +33,7 @@ export interface TreeCollaborator {
   id: string;
   tree_id: string;
   user_id: string;
-  role: 'viewer' | 'editor' | 'admin';
+  role: TreeRole;
   invited_by: string | null;
   joined_at: number;
   last_accessed_at: number | null;
@@ -54,7 +59,7 @@ export async function createInvitation(input: {
   treeId: string;
   email?: string;
   phone?: string;
-  role: 'viewer' | 'editor' | 'admin';
+  role: InvitationRole;
   message?: string;
   expiresInDays?: number;
 }): Promise<{ success: boolean; invitation?: TreeInvitation; error?: string }> {
@@ -67,11 +72,11 @@ export async function createInvitation(input: {
     const { env } = await getCloudflareContext();
     const db = env.DB;
 
-    // Verify user owns or can admin this tree
+    // Verify user owns or can manage this tree
     const tree = await db.prepare(`
       SELECT ft.* FROM family_trees ft
       LEFT JOIN tree_collaborators tc ON ft.id = tc.tree_id AND tc.user_id = ?
-      WHERE ft.id = ? AND (ft.owner_id = ? OR tc.role = 'admin')
+      WHERE ft.id = ? AND (ft.owner_id = ? OR tc.role = 'manager')
     `).bind(session.user.id, input.treeId, session.user.id).first();
 
     if (!tree) {
@@ -254,11 +259,11 @@ export async function getTreeInvitations(treeId: string): Promise<TreeInvitation
     const { env } = await getCloudflareContext();
     const db = env.DB;
 
-    // Verify access
+    // Verify access - managers and members can view invitations
     const hasAccess = await db.prepare(`
       SELECT 1 FROM family_trees ft
       LEFT JOIN tree_collaborators tc ON ft.id = tc.tree_id AND tc.user_id = ?
-      WHERE ft.id = ? AND (ft.owner_id = ? OR tc.role IN ('admin', 'editor'))
+      WHERE ft.id = ? AND (ft.owner_id = ? OR tc.role IN ('manager', 'member'))
     `).bind(session.user.id, treeId, session.user.id).first();
 
     if (!hasAccess) return [];
@@ -317,11 +322,11 @@ export async function removeCollaborator(treeId: string, userId: string): Promis
     `).bind(treeId, session.user.id).first();
 
     if (!tree) {
-      const isAdmin = await db.prepare(`
-        SELECT * FROM tree_collaborators WHERE tree_id = ? AND user_id = ? AND role = 'admin'
+      const isManager = await db.prepare(`
+        SELECT * FROM tree_collaborators WHERE tree_id = ? AND user_id = ? AND role = 'manager'
       `).bind(treeId, session.user.id).first();
 
-      if (!isAdmin) {
+      if (!isManager) {
         return { success: false, error: 'No permission to remove collaborators' };
       }
     }

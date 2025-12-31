@@ -6,7 +6,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { register } from '@/lib/auth/actions';
-import { Mail, Lock, Eye, EyeOff, User, Loader2, Gift } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, Loader2, Gift, TreeDeciduous, Check, X } from 'lucide-react';
+import { useGuest } from '@/contexts/GuestContext';
 
 const translations = {
   ar: {
@@ -17,9 +18,18 @@ const translations = {
     email: 'البريد الإلكتروني',
     emailPlaceholder: 'أدخل بريدك الإلكتروني',
     password: 'كلمة المرور',
-    passwordPlaceholder: 'أدخل كلمة المرور (8 أحرف على الأقل)',
+    passwordPlaceholder: 'أدخل كلمة المرور',
+    passwordRequirement: '12 حرفًا على الأقل',
+    passwordMatch: 'كلمات المرور متطابقة',
+    passwordNoMatch: 'كلمات المرور غير متطابقة',
+    emailValid: 'بريد إلكتروني صالح',
+    emailInvalid: 'يرجى إدخال بريد إلكتروني صالح',
+    nameValid: 'اسم صالح',
+    nameInvalid: 'حرفان على الأقل',
     confirmPassword: 'تأكيد كلمة المرور',
     confirmPasswordPlaceholder: 'أعد إدخال كلمة المرور',
+    accountCreated: 'تم إنشاء حسابك بنجاح!',
+    treeTransferred: 'تم نقل شجرتك بنجاح!',
     referralCode: 'رمز الإحالة (اختياري)',
     referralCodePlaceholder: 'أدخل رمز الإحالة إن وجد',
     register: 'إنشاء الحساب',
@@ -30,8 +40,11 @@ const translations = {
       email_exists: 'البريد الإلكتروني مسجل مسبقاً',
       registration_failed: 'فشل إنشاء الحساب، يرجى المحاولة مرة أخرى',
       passwords_mismatch: 'كلمات المرور غير متطابقة',
-      password_short: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل',
+      password_short: 'كلمة المرور يجب أن تكون 12 حرفًا على الأقل',
+      claim_failed: 'فشل نقل الشجرة، لكن تم إنشاء حسابك بنجاح',
     },
+    guestTreeNotice: 'لديك شجرة محفوظة! سيتم نقلها إلى حسابك الجديد.',
+    claimingTree: 'جاري نقل الشجرة...',
     orContinueWith: 'أو المتابعة عبر',
     google: 'Google',
     apple: 'Apple',
@@ -48,9 +61,18 @@ const translations = {
     email: 'Email',
     emailPlaceholder: 'Enter your email',
     password: 'Password',
-    passwordPlaceholder: 'Enter password (at least 8 characters)',
+    passwordPlaceholder: 'Enter password',
+    passwordRequirement: 'At least 12 characters',
+    passwordMatch: 'Passwords match',
+    passwordNoMatch: 'Passwords do not match',
+    emailValid: 'Valid email',
+    emailInvalid: 'Please enter a valid email',
+    nameValid: 'Valid name',
+    nameInvalid: 'At least 2 characters',
     confirmPassword: 'Confirm Password',
     confirmPasswordPlaceholder: 'Re-enter your password',
+    accountCreated: 'Account created successfully!',
+    treeTransferred: 'Your tree was transferred successfully!',
     referralCode: 'Referral Code (optional)',
     referralCodePlaceholder: 'Enter referral code if you have one',
     register: 'Create Account',
@@ -61,8 +83,11 @@ const translations = {
       email_exists: 'Email already registered',
       registration_failed: 'Registration failed, please try again',
       passwords_mismatch: 'Passwords do not match',
-      password_short: 'Password must be at least 8 characters',
+      password_short: 'Password must be at least 12 characters',
+      claim_failed: 'Failed to transfer tree, but your account was created successfully',
     },
+    guestTreeNotice: 'You have a saved tree! It will be transferred to your new account.',
+    claimingTree: 'Transferring tree...',
     orContinueWith: 'Or continue with',
     google: 'Google',
     apple: 'Apple',
@@ -78,6 +103,7 @@ export default function RegisterPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const t = translations[locale];
+  const { hasData, tree, exportForClaim, clearAll } = useGuest();
 
   const [name, setName] = React.useState('');
   const [email, setEmail] = React.useState('');
@@ -86,7 +112,43 @@ export default function RegisterPage() {
   const [referralCode, setReferralCode] = React.useState(searchParams.get('ref') || '');
   const [showPassword, setShowPassword] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
+  const [claiming, setClaiming] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [success, setSuccess] = React.useState<string | null>(null);
+
+  // Real-time validation states
+  const emailValid = email.length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const nameValid = name.trim().length >= 2;
+  const passwordLengthValid = password.length >= 12;
+  const passwordsMatch = password.length > 0 && confirmPassword.length > 0 && password === confirmPassword;
+
+  // Claim guest tree after registration
+  const claimGuestTree = async (): Promise<string | null> => {
+    if (!hasData) return null;
+
+    try {
+      setClaiming(true);
+      const guestData = exportForClaim();
+
+      const response = await fetch('/api/trees/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(guestData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        clearAll(); // Clear localStorage after successful claim
+        return result.tree.id;
+      }
+      return null;
+    } catch (error) {
+      console.error('Failed to claim guest tree:', error);
+      return null;
+    } finally {
+      setClaiming(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,7 +156,7 @@ export default function RegisterPage() {
     setError(null);
 
     // Validate password
-    if (password.length < 8) {
+    if (password.length < 12) {
       setError(t.errors.password_short);
       setLoading(false);
       return;
@@ -116,8 +178,33 @@ export default function RegisterPage() {
       });
 
       if (result.success) {
-        router.push(`/${locale}/tree`);
-        router.refresh();
+        // Try to claim guest tree if exists
+        if (hasData) {
+          const claimedTreeId = await claimGuestTree();
+          if (claimedTreeId) {
+            // Success - show message and redirect
+            setSuccess(t.treeTransferred);
+            setTimeout(() => {
+              router.push(`/${locale}/tree/${claimedTreeId}`);
+              router.refresh();
+            }, 1500);
+          } else {
+            // Tree claim failed but account created - show warning and redirect
+            setSuccess(t.accountCreated);
+            setError(t.errors.claim_failed);
+            setTimeout(() => {
+              router.push(`/${locale}/tree`);
+              router.refresh();
+            }, 2500);
+          }
+        } else {
+          // No guest tree - just show success and redirect
+          setSuccess(t.accountCreated);
+          setTimeout(() => {
+            router.push(`/${locale}/tree`);
+            router.refresh();
+          }, 1500);
+        }
       } else {
         setError(t.errors[result.error as keyof typeof t.errors] || t.errors.registration_failed);
       }
@@ -153,6 +240,30 @@ export default function RegisterPage() {
         {/* Form */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Guest tree notice */}
+            {hasData && tree && (
+              <div className="p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+                <div className="flex items-center gap-3">
+                  <TreeDeciduous className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                      {t.guestTreeNotice}
+                    </p>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+                      {tree.name}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {success && (
+              <div className="p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 text-sm text-center flex items-center justify-center gap-2">
+                <Check className="w-4 h-4" />
+                {success}
+              </div>
+            )}
+
             {error && (
               <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm text-center">
                 {error}
@@ -161,7 +272,7 @@ export default function RegisterPage() {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                {t.name}
+                {t.name} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <User className="absolute start-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -174,11 +285,22 @@ export default function RegisterPage() {
                   required
                 />
               </div>
+              {/* Name validation indicator */}
+              {name.length > 0 && (
+                <div className={`flex items-center gap-1.5 mt-1.5 text-xs ${nameValid ? 'text-emerald-600' : 'text-slate-500'}`}>
+                  {nameValid ? (
+                    <Check className="w-3.5 h-3.5" />
+                  ) : (
+                    <X className="w-3.5 h-3.5" />
+                  )}
+                  <span>{nameValid ? t.nameValid : t.nameInvalid}</span>
+                </div>
+              )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                {t.email}
+                {t.email} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <Mail className="absolute start-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -192,11 +314,22 @@ export default function RegisterPage() {
                   dir="ltr"
                 />
               </div>
+              {/* Email validation indicator */}
+              {email.length > 0 && (
+                <div className={`flex items-center gap-1.5 mt-1.5 text-xs ${emailValid ? 'text-emerald-600' : 'text-red-500'}`}>
+                  {emailValid ? (
+                    <Check className="w-3.5 h-3.5" />
+                  ) : (
+                    <X className="w-3.5 h-3.5" />
+                  )}
+                  <span>{emailValid ? t.emailValid : t.emailInvalid}</span>
+                </div>
+              )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                {t.password}
+                {t.password} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <Lock className="absolute start-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -208,7 +341,7 @@ export default function RegisterPage() {
                   className="ps-10 pe-10"
                   required
                   dir="ltr"
-                  minLength={8}
+                  minLength={12}
                 />
                 <button
                   type="button"
@@ -218,11 +351,24 @@ export default function RegisterPage() {
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
+              {/* Password requirements indicator */}
+              {password.length > 0 && (
+                <div className={`flex items-center gap-1.5 mt-1.5 text-xs ${passwordLengthValid ? 'text-emerald-600' : 'text-slate-500'}`}>
+                  {passwordLengthValid ? (
+                    <Check className="w-3.5 h-3.5" />
+                  ) : (
+                    <span className="w-3.5 h-3.5 rounded-full border border-current flex items-center justify-center text-[8px]">
+                      {password.length}
+                    </span>
+                  )}
+                  <span>{t.passwordRequirement}</span>
+                </div>
+              )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                {t.confirmPassword}
+                {t.confirmPassword} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <Lock className="absolute start-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -236,6 +382,17 @@ export default function RegisterPage() {
                   dir="ltr"
                 />
               </div>
+              {/* Password match indicator */}
+              {confirmPassword.length > 0 && (
+                <div className={`flex items-center gap-1.5 mt-1.5 text-xs ${passwordsMatch ? 'text-emerald-600' : 'text-red-500'}`}>
+                  {passwordsMatch ? (
+                    <Check className="w-3.5 h-3.5" />
+                  ) : (
+                    <X className="w-3.5 h-3.5" />
+                  )}
+                  <span>{passwordsMatch ? t.passwordMatch : t.passwordNoMatch}</span>
+                </div>
+              )}
             </div>
 
             <div>
@@ -259,9 +416,14 @@ export default function RegisterPage() {
             <Button
               type="submit"
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
-              disabled={loading}
+              disabled={loading || claiming}
             >
-              {loading ? (
+              {claiming ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin me-2" />
+                  {t.claimingTree}
+                </>
+              ) : loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin me-2" />
                   {t.registering}

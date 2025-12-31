@@ -17,9 +17,9 @@ const translations = {
   ar: {
     title: 'المتعاونون',
     owner: 'المالك',
-    admin: 'مدير',
-    editor: 'محرر',
-    viewer: 'مشاهد',
+    manager: 'مدير',
+    member: 'عضو',
+    guest: 'ضيف',
     remove: 'إزالة',
     removeConfirm: 'هل أنت متأكد من إزالة هذا المتعاون؟',
     noCollaborators: 'لم تتم إضافة متعاونين بعد',
@@ -29,9 +29,9 @@ const translations = {
   en: {
     title: 'Collaborators',
     owner: 'Owner',
-    admin: 'Admin',
-    editor: 'Editor',
-    viewer: 'Viewer',
+    manager: 'Manager',
+    member: 'Member',
+    guest: 'Guest',
     remove: 'Remove',
     removeConfirm: 'Are you sure you want to remove this collaborator?',
     noCollaborators: 'No collaborators added yet',
@@ -41,15 +41,17 @@ const translations = {
 };
 
 const roleIcons = {
-  admin: Shield,
-  editor: Users,
-  viewer: Eye,
+  owner: Crown,
+  manager: Shield,
+  member: Users,
+  guest: Eye,
 };
 
 const roleColors = {
-  admin: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  editor: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  viewer: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300',
+  owner: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  manager: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+  member: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  guest: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300',
 };
 
 export function CollaboratorsList({ treeId, ownerId, collaborators, currentUserId, onUpdate }: CollaboratorsListProps) {

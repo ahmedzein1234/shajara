@@ -59,10 +59,11 @@ export default async function HomePage({
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Link
-                href={`/${locale}/tree`}
+                href={`/${locale}/try`}
                 className="group bg-white text-emerald-600 px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-smooth flex items-center gap-3"
               >
-                <span>{locale === 'ar' ? 'ابدأ التواصل مع عائلتك' : 'Start Connecting with Family'}</span>
+                <Sparkles className="w-5 h-5 text-amber-500" />
+                <span>{locale === 'ar' ? 'جرّب مجاناً بدون تسجيل' : 'Try Free Without Registration'}</span>
                 {isRTL ? (
                   <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
                 ) : (
@@ -70,9 +71,12 @@ export default async function HomePage({
                 )}
               </Link>
 
-              <button className="bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-xl font-bold text-lg border-2 border-gold-200/30 hover:bg-white/20 hover:border-gold-200/50 transition-smooth">
-                {locale === 'ar' ? 'اكتشف المزيد' : 'Learn More'}
-              </button>
+              <Link
+                href={`/${locale}/register`}
+                className="bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-xl font-bold text-lg border-2 border-gold-200/30 hover:bg-white/20 hover:border-gold-200/50 transition-smooth"
+              >
+                {locale === 'ar' ? 'إنشاء حساب' : 'Create Account'}
+              </Link>
             </div>
 
             {/* Trust Indicator */}
@@ -302,13 +306,22 @@ export default async function HomePage({
               : 'Every family bond deserves to be cherished, and every memory deserves to be preserved. Start today building your family tree, connect with your relatives, and preserve your shared history for generations to come.'}
           </p>
 
-          <Link
-            href={`/${locale}/tree`}
-            className="inline-flex items-center gap-3 btn-heritage px-10 py-5 rounded-xl font-bold text-lg text-slate-900 hover:scale-105 transition-smooth"
-          >
-            <Users className="w-6 h-6" />
-            <span>{locale === 'ar' ? 'تواصل مع عائلتك الآن' : 'Connect With Your Family Now'}</span>
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Link
+              href={`/${locale}/try`}
+              className="inline-flex items-center gap-3 btn-heritage px-10 py-5 rounded-xl font-bold text-lg text-slate-900 hover:scale-105 transition-smooth"
+            >
+              <Sparkles className="w-6 h-6" />
+              <span>{locale === 'ar' ? 'جرّب الآن مجاناً' : 'Try Now For Free'}</span>
+            </Link>
+            <Link
+              href={`/${locale}/register`}
+              className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-xl font-bold text-lg border-2 border-gold-200/30 hover:bg-white/20 hover:border-gold-200/50 transition-smooth"
+            >
+              <Users className="w-5 h-5" />
+              <span>{locale === 'ar' ? 'إنشاء حساب' : 'Create Account'}</span>
+            </Link>
+          </div>
 
           {/* Footer Quote */}
           <p className="mt-12 text-amber-200/60 text-sm font-display italic">

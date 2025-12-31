@@ -3,6 +3,8 @@
  * Supports WhatsApp, SMS, Email, Social Media, and QR codes
  */
 
+import type { InvitationRole } from '@/lib/db/invitation-actions';
+
 export interface ShareContent {
   title: string;
   titleAr: string;
@@ -17,7 +19,7 @@ export interface InviteShareContent extends ShareContent {
   treeName: string;
   treeNameAr: string;
   inviterName: string;
-  role: 'viewer' | 'editor' | 'admin';
+  role: InvitationRole;
 }
 
 // Base URL for the app
@@ -173,22 +175,22 @@ export function generateInviteShareContent(
   treeName: string,
   treeNameAr: string,
   inviterName: string,
-  role: 'viewer' | 'editor' | 'admin'
+  role: InvitationRole
 ): InviteShareContent {
   const baseUrl = getBaseUrl();
   const inviteUrl = `${baseUrl}/ar/invite/${inviteCode}`;
 
-  const roleTextAr = {
-    viewer: 'مشاهد',
-    editor: 'محرر',
-    admin: 'مدير',
-  }[role];
+  const roleTextAr: Record<InvitationRole, string> = {
+    guest: 'ضيف',
+    member: 'عضو',
+    manager: 'مدير',
+  };
 
-  const roleTextEn = {
-    viewer: 'viewer',
-    editor: 'editor',
-    admin: 'admin',
-  }[role];
+  const roleTextEn: Record<InvitationRole, string> = {
+    guest: 'guest',
+    member: 'member',
+    manager: 'manager',
+  };
 
   return {
     inviteCode,
@@ -198,8 +200,8 @@ export function generateInviteShareContent(
     role,
     title: `Join ${treeName} Family Tree`,
     titleAr: `انضم إلى شجرة عائلة ${treeNameAr}`,
-    message: `${inviterName} has invited you to join their family tree as a ${roleTextEn}. Click the link below to accept the invitation and start exploring your family history.`,
-    messageAr: `${inviterName} دعاك للانضمام إلى شجرة العائلة كـ${roleTextAr}. اضغط على الرابط أدناه لقبول الدعوة واستكشاف تاريخ عائلتك.`,
+    message: `${inviterName} has invited you to join their family tree as a ${roleTextEn[role]}. Click the link below to accept the invitation and start exploring your family history.`,
+    messageAr: `${inviterName} دعاك للانضمام إلى شجرة العائلة كـ${roleTextAr[role]}. اضغط على الرابط أدناه لقبول الدعوة واستكشاف تاريخ عائلتك.`,
     url: inviteUrl,
   };
 }

@@ -4,17 +4,17 @@
  */
 
 import { NextRequest } from 'next/server';
-import { getDatabase, createPerson, verifyTreeOwnership } from '@/lib/api/db';
+import { getDatabase, createPerson } from '@/lib/api/db';
 import { validateCreatePerson } from '@/lib/api/validation';
 import {
   handleError,
   createdResponse,
   parseJsonBody,
-  ForbiddenError,
   UnauthorizedError,
 } from '@/lib/api/errors';
 import { getCurrentUserId } from '@/lib/auth/session';
 import { invalidateTreeCache, getKVFromEnv } from '@/lib/cache/kv';
+import { requireTreePermission } from '@/lib/permissions/api';
 
 /**
  * POST /api/persons
@@ -49,11 +49,8 @@ export async function POST(request: NextRequest) {
     const body = await parseJsonBody(request);
     const validatedInput = validateCreatePerson(body);
 
-    // Verify user owns the tree
-    const isOwner = await verifyTreeOwnership(db, validatedInput.tree_id, userId);
-    if (!isOwner) {
-      throw new ForbiddenError('You do not have permission to add persons to this tree');
-    }
+    // Check permission to add persons to this tree
+    await requireTreePermission(db, userId, validatedInput.tree_id, 'canAddPerson');
 
     const person = await createPerson(db, validatedInput);
 

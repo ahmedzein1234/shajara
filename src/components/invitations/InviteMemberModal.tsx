@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useLocale } from 'next-intl';
 import { X, Mail, Link2, MessageCircle, Copy, Check, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { createInvitation, type TreeInvitation } from '@/lib/db/invitation-actions';
+import { createInvitation, type TreeInvitation, type InvitationRole } from '@/lib/db/invitation-actions';
 
 interface InviteMemberModalProps {
   treeId: string;
@@ -21,12 +21,12 @@ const translations = {
     emailLabel: 'البريد الإلكتروني',
     emailPlaceholder: 'أدخل البريد الإلكتروني',
     roleLabel: 'صلاحية الوصول',
-    viewer: 'مشاهد فقط',
-    viewerDesc: 'يمكنه رؤية الشجرة فقط',
-    editor: 'محرر',
-    editorDesc: 'يمكنه إضافة وتعديل الأشخاص',
-    admin: 'مدير',
-    adminDesc: 'صلاحيات كاملة بما في ذلك الدعوات',
+    guest: 'ضيف',
+    guestDesc: 'يمكنه رؤية الشجرة فقط',
+    member: 'عضو',
+    memberDesc: 'يمكنه إضافة وتعديل الأشخاص',
+    manager: 'مدير',
+    managerDesc: 'صلاحيات كاملة بما في ذلك الدعوات',
     messageLabel: 'رسالة شخصية (اختياري)',
     messagePlaceholder: 'أضف رسالة ترحيبية...',
     sendInvite: 'إرسال الدعوة',
@@ -45,12 +45,12 @@ const translations = {
     emailLabel: 'Email Address',
     emailPlaceholder: 'Enter email address',
     roleLabel: 'Access Level',
-    viewer: 'Viewer',
-    viewerDesc: 'Can only view the tree',
-    editor: 'Editor',
-    editorDesc: 'Can add and edit people',
-    admin: 'Admin',
-    adminDesc: 'Full access including invitations',
+    guest: 'Guest',
+    guestDesc: 'Can only view the tree',
+    member: 'Member',
+    memberDesc: 'Can add and edit people',
+    manager: 'Manager',
+    managerDesc: 'Full access including invitations',
     messageLabel: 'Personal Message (optional)',
     messagePlaceholder: 'Add a welcome message...',
     sendInvite: 'Send Invitation',
@@ -70,7 +70,7 @@ export function InviteMemberModal({ treeId, treeName, isOpen, onClose, onInviteS
   const t = translations[locale];
 
   const [email, setEmail] = React.useState('');
-  const [role, setRole] = React.useState<'viewer' | 'editor' | 'admin'>('viewer');
+  const [role, setRole] = React.useState<InvitationRole>('guest');
   const [message, setMessage] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState('');
@@ -121,7 +121,7 @@ export function InviteMemberModal({ treeId, treeName, isOpen, onClose, onInviteS
 
   const handleClose = () => {
     setEmail('');
-    setRole('viewer');
+    setRole('guest');
     setMessage('');
     setError('');
     setSuccess(false);
@@ -218,7 +218,7 @@ export function InviteMemberModal({ treeId, treeName, isOpen, onClose, onInviteS
                   {t.roleLabel}
                 </label>
                 <div className="space-y-2">
-                  {(['viewer', 'editor', 'admin'] as const).map((r) => (
+                  {(['guest', 'member', 'manager'] as const).map((r) => (
                     <label
                       key={r}
                       className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-colors ${

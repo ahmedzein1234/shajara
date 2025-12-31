@@ -5,12 +5,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   ArrowRight, ArrowLeft, Settings, Shield, Users, Bell,
-  Eye, EyeOff, Globe, Lock, UserPlus, Check, X, Loader2
+  Eye, EyeOff, Globe, Lock, UserPlus, Check, X, Loader2,
+  Database, Download, Upload
 } from 'lucide-react';
 import type { Tree } from '@/lib/db/schema';
 import type { TreePrivacySettings, VisibilityLevel } from '@/lib/privacy/actions';
 import { updateTreePrivacySettings } from '@/lib/privacy/actions';
 import ConnectionRequestsManager from '@/components/privacy/ConnectionRequestsManager';
+import GedcomImport from '@/components/tree/GedcomImport';
 
 interface TreeSettingsClientProps {
   tree: Tree;
@@ -28,6 +30,16 @@ const translations = {
       privacy: 'الخصوصية',
       members: 'الأعضاء',
       requests: 'طلبات الانضمام',
+      data: 'البيانات',
+    },
+    data: {
+      title: 'إدارة البيانات',
+      description: 'استيراد وتصدير بيانات شجرة العائلة',
+      importSection: 'استيراد',
+      exportSection: 'تصدير',
+      exportGedcom: 'تصدير GEDCOM',
+      exportGedcomDesc: 'تحميل بيانات الشجرة بتنسيق GEDCOM القياسي',
+      download: 'تحميل',
     },
     privacy: {
       title: 'إعدادات الخصوصية',
@@ -71,6 +83,16 @@ const translations = {
       privacy: 'Privacy',
       members: 'Members',
       requests: 'Requests',
+      data: 'Data',
+    },
+    data: {
+      title: 'Data Management',
+      description: 'Import and export family tree data',
+      importSection: 'Import',
+      exportSection: 'Export',
+      exportGedcom: 'Export GEDCOM',
+      exportGedcomDesc: 'Download tree data in standard GEDCOM format',
+      download: 'Download',
     },
     privacy: {
       title: 'Privacy Settings',
@@ -119,7 +141,7 @@ export default function TreeSettingsClient({
   const BackArrow = isRTL ? ArrowRight : ArrowLeft;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [activeTab, setActiveTab] = useState<'general' | 'privacy' | 'members' | 'requests'>('privacy');
+  const [activeTab, setActiveTab] = useState<'general' | 'privacy' | 'members' | 'requests' | 'data'>('privacy');
   const [saved, setSaved] = useState(false);
 
   // Privacy settings state
@@ -181,18 +203,19 @@ export default function TreeSettingsClient({
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           {/* Tabs */}
-          <div className="flex gap-2 mb-8 border-b border-slate-200 dark:border-slate-700">
-            {(['privacy', 'members', 'requests'] as const).map((tab) => (
+          <div className="flex gap-2 mb-8 border-b border-slate-200 dark:border-slate-700 overflow-x-auto">
+            {(['privacy', 'data', 'members', 'requests'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 py-3 font-medium text-sm transition-colors border-b-2 -mb-[2px] ${
+                className={`px-4 py-3 font-medium text-sm transition-colors border-b-2 -mb-[2px] whitespace-nowrap ${
                   activeTab === tab
                     ? 'border-islamic-primary text-islamic-primary'
                     : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 {tab === 'privacy' && <Shield className="w-4 h-4 inline-block me-2" />}
+                {tab === 'data' && <Database className="w-4 h-4 inline-block me-2" />}
                 {tab === 'members' && <Users className="w-4 h-4 inline-block me-2" />}
                 {tab === 'requests' && <UserPlus className="w-4 h-4 inline-block me-2" />}
                 {t.tabs[tab]}
@@ -366,6 +389,52 @@ export default function TreeSettingsClient({
                     t.privacy.save
                   )}
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* Data Tab */}
+          {activeTab === 'data' && (
+            <div className="space-y-8">
+              {/* Import Section */}
+              <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+                <GedcomImport
+                  treeId={tree.id}
+                  treeName={tree.name}
+                  locale={locale as 'ar' | 'en'}
+                  onImportComplete={() => router.refresh()}
+                />
+              </div>
+
+              {/* Export Section */}
+              <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                  {t.data.exportSection}
+                </h3>
+
+                <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-white dark:bg-slate-800 rounded-lg">
+                      <Download className="w-6 h-6 text-islamic-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-slate-900 dark:text-white">
+                        {t.data.exportGedcom}
+                      </h4>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                        {t.data.exportGedcomDesc}
+                      </p>
+                    </div>
+                    <a
+                      href={`/api/export/${tree.id}?format=gedcom`}
+                      download={`${tree.name}.ged`}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-islamic-primary hover:bg-islamic-600 text-white rounded-lg font-medium transition-colors"
+                    >
+                      <Download className="w-4 h-4" />
+                      {t.data.download}
+                    </a>
+                  </div>
+                </div>
               </div>
             </div>
           )}

@@ -11,7 +11,6 @@ import {
   getPersonById,
   updatePerson,
   deletePerson,
-  verifyPersonOwnership,
   getRelationshipsByPersonId,
 } from '@/lib/api/db';
 import { validateUpdatePerson } from '@/lib/api/validation';
@@ -21,11 +20,11 @@ import {
   noContentResponse,
   parseJsonBody,
   NotFoundError,
-  ForbiddenError,
   UnauthorizedError,
 } from '@/lib/api/errors';
 import { getCurrentUserId } from '@/lib/auth/session';
 import { invalidateTreeCache, getKVFromEnv } from '@/lib/cache/kv';
+import { requireTreePermission } from '@/lib/permissions/api';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -91,17 +90,14 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       throw new UnauthorizedError('Authentication required');
     }
 
-    // Get person first to know the tree_id for cache invalidation
+    // Get person first to know the tree_id for cache invalidation and permission check
     const existingPerson = await getPersonById(db, id);
     if (!existingPerson) {
       throw new NotFoundError('Person not found');
     }
 
-    // Verify ownership
-    const isOwner = await verifyPersonOwnership(db, id, userId);
-    if (!isOwner) {
-      throw new ForbiddenError('You do not have permission to update this person');
-    }
+    // Check permission to edit persons in this tree
+    await requireTreePermission(db, userId, existingPerson.tree_id, 'canEditPerson');
 
     const body = await parseJsonBody(request);
     const validatedInput = validateUpdatePerson(body);
@@ -137,17 +133,14 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       throw new UnauthorizedError('Authentication required');
     }
 
-    // Get person first to know the tree_id for cache invalidation
+    // Get person first to know the tree_id for cache invalidation and permission check
     const person = await getPersonById(db, id);
     if (!person) {
       throw new NotFoundError('Person not found');
     }
 
-    // Verify ownership
-    const isOwner = await verifyPersonOwnership(db, id, userId);
-    if (!isOwner) {
-      throw new ForbiddenError('You do not have permission to delete this person');
-    }
+    // Check permission to delete persons in this tree
+    await requireTreePermission(db, userId, person.tree_id, 'canDeletePerson');
 
     const deleted = await deletePerson(db, id);
 

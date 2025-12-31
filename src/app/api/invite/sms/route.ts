@@ -6,14 +6,14 @@ import {
   isValidPhoneNumber,
   getTwilioConfig,
 } from '@/lib/sms/twilio-service';
-import { createInvitation, getInviteLink } from '@/lib/db/invitation-actions';
+import { createInvitation, getInviteLink, type InvitationRole } from '@/lib/db/invitation-actions';
 
 interface SendInviteSmsRequest {
   treeId: string;
   phone: string;
   inviterName: string;
   treeName: string;
-  role: 'viewer' | 'editor' | 'admin';
+  role: InvitationRole;
   message?: string;
   locale?: 'ar' | 'en';
 }

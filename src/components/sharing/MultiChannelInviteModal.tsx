@@ -23,7 +23,7 @@ import {
   getWhatsAppDirectUrl,
   getSmsUrl,
 } from '@/lib/sharing/share-utils';
-import { createInvitation } from '@/lib/db/invitation-actions';
+import { createInvitation, type InvitationRole } from '@/lib/db/invitation-actions';
 
 interface MultiChannelInviteModalProps {
   isOpen: boolean;
@@ -36,7 +36,6 @@ interface MultiChannelInviteModalProps {
 }
 
 type InviteMethod = 'whatsapp' | 'sms' | 'email' | 'qr' | 'link';
-type InviteRole = 'viewer' | 'editor' | 'admin';
 
 export function MultiChannelInviteModal({
   isOpen,
@@ -48,7 +47,7 @@ export function MultiChannelInviteModal({
   locale = 'ar',
 }: MultiChannelInviteModalProps) {
   const [selectedMethod, setSelectedMethod] = useState<InviteMethod>('whatsapp');
-  const [role, setRole] = useState<InviteRole>('viewer');
+  const [role, setRole] = useState<InvitationRole>('guest');
   const [contact, setContact] = useState('');
   const [message, setMessage] = useState('');
   const [inviteCode, setInviteCode] = useState<string | null>(null);
@@ -72,9 +71,9 @@ export function MultiChannelInviteModal({
       },
       role: 'الصلاحية',
       roles: {
-        viewer: 'مشاهد - يمكنه عرض الشجرة فقط',
-        editor: 'محرر - يمكنه إضافة وتعديل الأفراد',
-        admin: 'مدير - صلاحيات كاملة',
+        guest: 'ضيف - عرض فقط',
+        member: 'عضو - إضافة وتعديل الأشخاص',
+        manager: 'مدير - صلاحيات كاملة وإدارة الأعضاء',
       },
       phone: 'رقم الهاتف',
       email: 'البريد الإلكتروني',
@@ -109,9 +108,9 @@ export function MultiChannelInviteModal({
       },
       role: 'Permission',
       roles: {
-        viewer: 'Viewer - Can only view the tree',
-        editor: 'Editor - Can add and edit people',
-        admin: 'Admin - Full permissions',
+        guest: 'Guest - Read-only access',
+        member: 'Member - Can add and edit people',
+        manager: 'Manager - Full access and can manage members',
       },
       phone: 'Phone Number',
       email: 'Email Address',
@@ -308,12 +307,12 @@ export function MultiChannelInviteModal({
             <div className="relative">
               <select
                 value={role}
-                onChange={(e) => setRole(e.target.value as InviteRole)}
+                onChange={(e) => setRole(e.target.value as InvitationRole)}
                 className="w-full p-3 border-2 border-gray-200 rounded-xl appearance-none bg-white focus:border-islamic-primary focus:outline-none"
               >
-                <option value="viewer">{t.roles.viewer}</option>
-                <option value="editor">{t.roles.editor}</option>
-                <option value="admin">{t.roles.admin}</option>
+                <option value="guest">{t.roles.guest}</option>
+                <option value="member">{t.roles.member}</option>
+                <option value="manager">{t.roles.manager}</option>
               </select>
               <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
             </div>

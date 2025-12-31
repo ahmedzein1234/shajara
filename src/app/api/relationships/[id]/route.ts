@@ -7,18 +7,17 @@ import { NextRequest } from 'next/server';
 import {
   getDatabase,
   deleteRelationship,
-  verifyRelationshipOwnership,
   getRelationshipById,
 } from '@/lib/api/db';
 import {
   handleError,
   noContentResponse,
   NotFoundError,
-  ForbiddenError,
   UnauthorizedError,
 } from '@/lib/api/errors';
 import { getCurrentUserId } from '@/lib/auth/session';
 import { invalidateTreeCache, getKVFromEnv } from '@/lib/cache/kv';
+import { requireTreePermission } from '@/lib/permissions/api';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -39,17 +38,14 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       throw new UnauthorizedError('Authentication required');
     }
 
-    // Get relationship first to know tree_id for cache invalidation
+    // Get relationship first to know tree_id for cache invalidation and permission check
     const relationship = await getRelationshipById(db, id);
     if (!relationship) {
       throw new NotFoundError('Relationship not found');
     }
 
-    // Verify ownership
-    const isOwner = await verifyRelationshipOwnership(db, id, userId);
-    if (!isOwner) {
-      throw new ForbiddenError('You do not have permission to delete this relationship');
-    }
+    // Check permission to delete relationships in this tree
+    await requireTreePermission(db, userId, relationship.tree_id, 'canDeleteRelationship');
 
     const deleted = await deleteRelationship(db, id);
 

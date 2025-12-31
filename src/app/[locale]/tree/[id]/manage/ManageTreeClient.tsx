@@ -81,8 +81,8 @@ export function ManageTreeClient({
   const [invitations, setInvitations] = React.useState(initialInvitations);
   const [collaborators, setCollaborators] = React.useState(initialCollaborators);
 
-  const canInvite = tree.isOwner || tree.userRole === 'admin';
-  const canManagePrivacy = tree.isOwner || tree.userRole === 'admin';
+  const canInvite = tree.isOwner || tree.userRole === 'manager';
+  const canManagePrivacy = tree.isOwner || tree.userRole === 'manager';
 
   const refreshData = async () => {
     const [newInvitations, newCollaborators] = await Promise.all([

@@ -131,7 +131,7 @@ interface InvitePreviewCardProps {
   inviterName: string;
   treeName: string;
   treeNameAr: string;
-  role: 'viewer' | 'editor' | 'admin';
+  role: 'guest' | 'member' | 'manager';
   locale?: 'ar' | 'en';
 }
 
@@ -151,9 +151,9 @@ export function InvitePreviewCard({
       toTree: 'إلى شجرة عائلة',
       as: 'كـ',
       roles: {
-        viewer: 'مشاهد',
-        editor: 'محرر',
-        admin: 'مدير',
+        guest: 'ضيف',
+        member: 'عضو',
+        manager: 'مدير',
       },
       accept: 'قبول الدعوة',
     },
@@ -162,9 +162,9 @@ export function InvitePreviewCard({
       toTree: 'the family tree of',
       as: 'as',
       roles: {
-        viewer: 'Viewer',
-        editor: 'Editor',
-        admin: 'Admin',
+        guest: 'Guest',
+        member: 'Member',
+        manager: 'Manager',
       },
       accept: 'Accept Invitation',
     },

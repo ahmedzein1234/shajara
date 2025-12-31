@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DualDatePicker } from './DualDatePicker';
 import { VoiceInput } from './VoiceInput';
+import { TribalSelector } from './TribalSelector';
 import {
   User, Calendar, MapPin, Camera, Save,
-  Loader2, X, ChevronDown, Mic
+  Loader2, X, ChevronDown, Mic, Crown, Users
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -16,14 +17,21 @@ export interface PersonFormData {
   given_name: string;
   patronymic_chain?: string;
   family_name?: string;
+  kunya?: string;           // الكنية (Abu/Umm + child's name)
+  laqab?: string;           // اللقب (title/epithet)
+  nisba?: string;           // النسبة (origin indicator)
   full_name_ar?: string;
   full_name_en?: string;
   gender: 'male' | 'female';
+  tribe_id?: string;        // Reference to tribes table
+  tribal_branch?: string;   // فخذ (sub-tribe/clan)
   birth_date?: string;
+  birth_date_hijri?: string;
   birth_place?: string;
   birth_place_lat?: number;
   birth_place_lng?: number;
   death_date?: string;
+  death_date_hijri?: string;
   death_place?: string;
   death_place_lat?: number;
   death_place_lng?: number;
@@ -48,6 +56,23 @@ const translations = {
     patronymicChainPlaceholder: 'بن/بنت خالد بن محمد...',
     familyName: 'اسم العائلة/القبيلة',
     familyNamePlaceholder: 'مثال: القحطاني، العتيبي',
+    // New Arabic name fields
+    kunya: 'الكنية',
+    kunyaPlaceholder: 'أبو/أم + اسم الابن (مثال: أبو محمد)',
+    kunyaHint: 'الكنية هي لقب يبدأ بـ "أبو" للرجل أو "أم" للمرأة',
+    laqab: 'اللقب',
+    laqabPlaceholder: 'مثال: الفاروق، الأمين، الصديق',
+    laqabHint: 'صفة أو لقب تشريفي',
+    nisba: 'النسبة',
+    nisbaPlaceholder: 'مثال: الدمشقي، المصري، البغدادي',
+    nisbaHint: 'نسبة للمكان أو المهنة أو المذهب',
+    // Tribal affiliation
+    tribalInfo: 'الانتماء القبلي',
+    tribe: 'القبيلة',
+    tribePlaceholder: 'اختر القبيلة',
+    tribalBranch: 'الفخذ',
+    tribalBranchPlaceholder: 'مثال: آل فلان',
+    // Existing fields
     fullNameAr: 'الاسم الكامل (عربي)',
     fullNameEn: 'الاسم الكامل (إنجليزي)',
     gender: 'الجنس',
@@ -71,6 +96,7 @@ const translations = {
     cancel: 'إلغاء',
     required: 'مطلوب',
     voiceHint: 'اضغط على الميكروفون للإدخال الصوتي',
+    expandedNameFields: 'الأسماء التقليدية (اختياري)',
   },
   en: {
     title: 'Person Information',
@@ -80,6 +106,23 @@ const translations = {
     patronymicChainPlaceholder: 'bin/bint Khaled bin Mohammed...',
     familyName: 'Family Name',
     familyNamePlaceholder: 'e.g., Al-Qahtani, Al-Otaibi',
+    // New Arabic name fields
+    kunya: 'Kunya (Teknonym)',
+    kunyaPlaceholder: 'Abu/Umm + child name (e.g., Abu Mohammed)',
+    kunyaHint: 'Honorific starting with "Abu" (father of) or "Umm" (mother of)',
+    laqab: 'Laqab (Epithet)',
+    laqabPlaceholder: 'e.g., Al-Faruq, Al-Amin, Al-Siddiq',
+    laqabHint: 'Title or honorific descriptor',
+    nisba: 'Nisba (Origin)',
+    nisbaPlaceholder: 'e.g., Al-Dimashqi, Al-Masri, Al-Baghdadi',
+    nisbaHint: 'Indicates geographic, tribal, or professional origin',
+    // Tribal affiliation
+    tribalInfo: 'Tribal Affiliation',
+    tribe: 'Tribe',
+    tribePlaceholder: 'Select tribe',
+    tribalBranch: 'Clan/Branch',
+    tribalBranchPlaceholder: 'e.g., Al-Flan branch',
+    // Existing fields
     fullNameAr: 'Full Name (Arabic)',
     fullNameEn: 'Full Name (English)',
     gender: 'Gender',
@@ -103,6 +146,7 @@ const translations = {
     cancel: 'Cancel',
     required: 'Required',
     voiceHint: 'Tap microphone for voice input',
+    expandedNameFields: 'Traditional Arabic Names (Optional)',
   },
 };
 
@@ -114,34 +158,75 @@ export function PersonForm({ initialData, onSubmit, onCancel, isLoading = false 
     given_name: initialData?.given_name || '',
     patronymic_chain: initialData?.patronymic_chain || '',
     family_name: initialData?.family_name || '',
+    kunya: initialData?.kunya || '',
+    laqab: initialData?.laqab || '',
+    nisba: initialData?.nisba || '',
     full_name_ar: initialData?.full_name_ar || '',
     full_name_en: initialData?.full_name_en || '',
     gender: initialData?.gender || 'male',
+    tribe_id: initialData?.tribe_id || '',
+    tribal_branch: initialData?.tribal_branch || '',
     birth_date: initialData?.birth_date || '',
+    birth_date_hijri: initialData?.birth_date_hijri || '',
     birth_place: initialData?.birth_place || '',
     death_date: initialData?.death_date || '',
+    death_date_hijri: initialData?.death_date_hijri || '',
     death_place: initialData?.death_place || '',
     is_living: initialData?.is_living ?? true,
     photo_url: initialData?.photo_url || '',
     notes: initialData?.notes || '',
   });
 
+  const [showExpandedNames, setShowExpandedNames] = React.useState(
+    !!(initialData?.kunya || initialData?.laqab || initialData?.nisba)
+  );
+
+  const [showTribalInfo, setShowTribalInfo] = React.useState(
+    !!(initialData?.tribe_id || initialData?.tribal_branch)
+  );
+
   const [photoPreview, setPhotoPreview] = React.useState<string | null>(initialData?.photo_url || null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = React.useState(false);
+  const [uploadError, setUploadError] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  // Auto-generate full name from components
+  // Auto-generate full name from components (traditional Arabic order)
   React.useEffect(() => {
-    const prefix = formData.gender === 'male' ? 'بن' : 'بنت';
-    const parts = [formData.given_name];
+    const parts: string[] = [];
+
+    // Kunya comes first (أبو محمد)
+    if (formData.kunya) {
+      parts.push(formData.kunya);
+    }
+
+    // Given name (Ism)
+    if (formData.given_name) {
+      parts.push(formData.given_name);
+    }
+
+    // Patronymic chain (Nasab)
     if (formData.patronymic_chain) {
       parts.push(formData.patronymic_chain);
     }
+
+    // Laqab (title/epithet)
+    if (formData.laqab) {
+      parts.push(formData.laqab);
+    }
+
+    // Family name
     if (formData.family_name) {
       parts.push(formData.family_name);
     }
+
+    // Nisba (if not already in family name)
+    if (formData.nisba && !formData.family_name?.includes(formData.nisba)) {
+      parts.push(formData.nisba);
+    }
+
     const fullNameAr = parts.join(' ');
     setFormData(prev => ({ ...prev, full_name_ar: fullNameAr }));
-  }, [formData.given_name, formData.patronymic_chain, formData.family_name, formData.gender]);
+  }, [formData.given_name, formData.patronymic_chain, formData.family_name, formData.kunya, formData.laqab, formData.nisba]);
 
   const handleChange = (field: keyof PersonFormData, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -151,21 +236,70 @@ export function PersonForm({ initialData, onSubmit, onCancel, isLoading = false 
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Preview
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setUploadError(locale === 'ar'
+        ? 'نوع الملف غير مدعوم. يرجى استخدام JPEG, PNG, GIF, أو WebP'
+        : 'File type not supported. Please use JPEG, PNG, GIF, or WebP');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setUploadError(locale === 'ar'
+        ? 'حجم الملف كبير جدًا. الحد الأقصى 5 ميجابايت'
+        : 'File too large. Maximum size is 5MB');
+      return;
+    }
+
+    setUploadError(null);
+
+    // Show preview immediately
     const reader = new FileReader();
     reader.onloadend = () => {
       setPhotoPreview(reader.result as string);
     };
     reader.readAsDataURL(file);
 
-    // TODO: Upload to R2 and get URL
-    // For now, we'll just store the data URL
-    setFormData(prev => ({ ...prev, photo_url: '' }));
+    // Upload to R2
+    setIsUploadingPhoto(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Upload failed');
+      }
+
+      const result = await response.json();
+      const photoUrl = result.data?.url || result.url;
+
+      setFormData(prev => ({ ...prev, photo_url: photoUrl }));
+      setUploadError(null);
+    } catch (error) {
+      console.error('Photo upload error:', error);
+      setUploadError(locale === 'ar'
+        ? 'فشل رفع الصورة. يرجى المحاولة مرة أخرى'
+        : 'Failed to upload photo. Please try again');
+      // Keep the preview but clear the URL
+      setFormData(prev => ({ ...prev, photo_url: '' }));
+    } finally {
+      setIsUploadingPhoto(false);
+    }
   };
 
   const handleRemovePhoto = () => {
     setPhotoPreview(null);
     setFormData(prev => ({ ...prev, photo_url: '' }));
+    setUploadError(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -278,6 +412,126 @@ export function PersonForm({ initialData, onSubmit, onCancel, isLoading = false 
               lang="ar-SA"
             />
           </div>
+        </div>
+
+        {/* Expandable Traditional Arabic Name Fields */}
+        <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setShowExpandedNames(!showExpandedNames)}
+            className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          >
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              {t.expandedNameFields}
+            </span>
+            <ChevronDown className={cn(
+              'w-4 h-4 text-slate-500 transition-transform',
+              showExpandedNames && 'rotate-180'
+            )} />
+          </button>
+
+          {showExpandedNames && (
+            <div className="p-4 space-y-4 border-t border-slate-200 dark:border-slate-700">
+              {/* Kunya */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  {t.kunya}
+                </label>
+                <Input
+                  value={formData.kunya}
+                  onChange={(e) => handleChange('kunya', e.target.value)}
+                  placeholder={t.kunyaPlaceholder}
+                />
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  {t.kunyaHint}
+                </p>
+              </div>
+
+              {/* Laqab */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  {t.laqab}
+                </label>
+                <Input
+                  value={formData.laqab}
+                  onChange={(e) => handleChange('laqab', e.target.value)}
+                  placeholder={t.laqabPlaceholder}
+                />
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  {t.laqabHint}
+                </p>
+              </div>
+
+              {/* Nisba */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  {t.nisba}
+                </label>
+                <Input
+                  value={formData.nisba}
+                  onChange={(e) => handleChange('nisba', e.target.value)}
+                  placeholder={t.nisbaPlaceholder}
+                />
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  {t.nisbaHint}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Tribal Affiliation - Separate Expandable Section */}
+        <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setShowTribalInfo(!showTribalInfo)}
+            className={cn(
+              'w-full flex items-center justify-between px-4 py-3 transition-colors',
+              showTribalInfo
+                ? 'bg-emerald-50 dark:bg-emerald-900/20'
+                : 'bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800'
+            )}
+          >
+            <span className="flex items-center gap-2">
+              <Crown className={cn(
+                'w-4 h-4',
+                showTribalInfo ? 'text-emerald-600' : 'text-slate-500'
+              )} />
+              <span className={cn(
+                'text-sm font-medium',
+                showTribalInfo ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-300'
+              )}>
+                {t.tribalInfo}
+              </span>
+              {formData.tribe_id && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs">
+                  <Users className="w-3 h-3" />
+                  {locale === 'ar' ? 'محدد' : 'Selected'}
+                </span>
+              )}
+            </span>
+            <ChevronDown className={cn(
+              'w-4 h-4 text-slate-500 transition-transform',
+              showTribalInfo && 'rotate-180'
+            )} />
+          </button>
+
+          {showTribalInfo && (
+            <div className="p-4 border-t border-slate-200 dark:border-slate-700">
+              <TribalSelector
+                value={formData.tribe_id}
+                tribalBranch={formData.tribal_branch}
+                onChange={(tribeId, tribalBranch) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    tribe_id: tribeId || '',
+                    tribal_branch: tribalBranch || '',
+                  }));
+                }}
+                locale={locale}
+              />
+            </div>
+          )}
         </div>
 
         {/* Full Names */}
@@ -394,15 +648,36 @@ export function PersonForm({ initialData, onSubmit, onCancel, isLoading = false 
               <img
                 src={photoPreview}
                 alt="Preview"
-                className="w-24 h-24 rounded-lg object-cover border border-slate-200 dark:border-slate-700"
+                className={cn(
+                  'w-24 h-24 rounded-lg object-cover border',
+                  isUploadingPhoto
+                    ? 'border-amber-400 opacity-70'
+                    : formData.photo_url
+                    ? 'border-emerald-400'
+                    : 'border-slate-200 dark:border-slate-700'
+                )}
               />
-              <button
-                type="button"
-                onClick={handleRemovePhoto}
-                className="absolute -top-2 -end-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              {isUploadingPhoto && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg">
+                  <Loader2 className="w-6 h-6 text-white animate-spin" />
+                </div>
+              )}
+              {!isUploadingPhoto && formData.photo_url && (
+                <div className="absolute -bottom-1 -end-1 w-5 h-5 bg-emerald-500 text-white rounded-full flex items-center justify-center">
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              )}
+              {!isUploadingPhoto && (
+                <button
+                  type="button"
+                  onClick={handleRemovePhoto}
+                  className="absolute -top-2 -end-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
           ) : (
             <div className="w-24 h-24 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center bg-slate-50 dark:bg-slate-800">
@@ -410,22 +685,61 @@ export function PersonForm({ initialData, onSubmit, onCancel, isLoading = false 
             </div>
           )}
 
-          <div>
+          <div className="space-y-2">
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/gif,image/webp"
               onChange={handlePhotoChange}
               className="hidden"
               id="photo-upload"
+              disabled={isUploadingPhoto}
             />
             <label
               htmlFor="photo-upload"
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors"
+              className={cn(
+                'inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors',
+                isUploadingPhoto
+                  ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                  : 'text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer'
+              )}
             >
-              <Camera className="w-4 h-4" />
-              {t.uploadPhoto}
+              {isUploadingPhoto ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  {locale === 'ar' ? 'جاري الرفع...' : 'Uploading...'}
+                </>
+              ) : (
+                <>
+                  <Camera className="w-4 h-4" />
+                  {t.uploadPhoto}
+                </>
+              )}
             </label>
+
+            {/* Upload status */}
+            {formData.photo_url && !isUploadingPhoto && (
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                {locale === 'ar' ? 'تم رفع الصورة بنجاح' : 'Photo uploaded successfully'}
+              </p>
+            )}
+
+            {/* Error message */}
+            {uploadError && (
+              <p className="text-xs text-red-600 dark:text-red-400">
+                {uploadError}
+              </p>
+            )}
+
+            {/* Size hint */}
+            <p className="text-xs text-slate-500">
+              {locale === 'ar'
+                ? 'JPEG, PNG, GIF, WebP - الحد الأقصى 5 ميجابايت'
+                : 'JPEG, PNG, GIF, WebP - Max 5MB'}
+            </p>
           </div>
         </div>
       </div>
@@ -462,7 +776,7 @@ export function PersonForm({ initialData, onSubmit, onCancel, isLoading = false 
         <Button
           type="submit"
           className="bg-emerald-600 hover:bg-emerald-700 text-white"
-          disabled={isLoading || !formData.given_name}
+          disabled={isLoading || isUploadingPhoto || !formData.given_name}
         >
           {isLoading ? (
             <>

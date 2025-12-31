@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { login } from '@/lib/auth/actions';
-import { Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Loader2, TreeDeciduous, Check } from 'lucide-react';
+import { useGuest } from '@/contexts/GuestContext';
 
 const translations = {
   ar: {
@@ -25,7 +26,13 @@ const translations = {
       email_exists: 'البريد الإلكتروني مسجل مسبقاً',
       invalid_credentials: 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
       login_failed: 'فشل تسجيل الدخول، يرجى المحاولة مرة أخرى',
+      account_locked: 'تم قفل الحساب مؤقتاً بسبب محاولات تسجيل دخول متعددة',
+      claim_failed: 'فشل نقل الشجرة، لكن تم تسجيل دخولك بنجاح',
     },
+    guestTreeNotice: 'لديك شجرة محفوظة! سيتم نقلها إلى حسابك.',
+    claimingTree: 'جاري نقل الشجرة...',
+    loginSuccess: 'تم تسجيل الدخول بنجاح!',
+    treeTransferred: 'تم نقل شجرتك بنجاح!',
     orContinueWith: 'أو المتابعة عبر',
     google: 'Google',
     apple: 'Apple',
@@ -46,7 +53,13 @@ const translations = {
       email_exists: 'Email already registered',
       invalid_credentials: 'Invalid email or password',
       login_failed: 'Login failed, please try again',
+      account_locked: 'Account temporarily locked due to multiple login attempts',
+      claim_failed: 'Failed to transfer tree, but you are now logged in',
     },
+    guestTreeNotice: 'You have a saved tree! It will be transferred to your account.',
+    claimingTree: 'Transferring tree...',
+    loginSuccess: 'Login successful!',
+    treeTransferred: 'Your tree was transferred successfully!',
     orContinueWith: 'Or continue with',
     google: 'Google',
     apple: 'Apple',
@@ -57,12 +70,43 @@ export default function LoginPage() {
   const locale = useLocale() as 'ar' | 'en';
   const router = useRouter();
   const t = translations[locale];
+  const { hasData, tree, exportForClaim, clearAll } = useGuest();
 
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
+  const [claiming, setClaiming] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [success, setSuccess] = React.useState<string | null>(null);
+
+  // Claim guest tree after login
+  const claimGuestTree = async (): Promise<string | null> => {
+    if (!hasData) return null;
+
+    try {
+      setClaiming(true);
+      const guestData = exportForClaim();
+
+      const response = await fetch('/api/trees/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(guestData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        clearAll(); // Clear localStorage after successful claim
+        return result.tree.id;
+      }
+      return null;
+    } catch (error) {
+      console.error('Failed to claim guest tree:', error);
+      return null;
+    } finally {
+      setClaiming(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,8 +117,33 @@ export default function LoginPage() {
       const result = await login({ email, password });
 
       if (result.success) {
-        router.push(`/${locale}/tree`);
-        router.refresh();
+        // Try to claim guest tree if exists
+        if (hasData) {
+          const claimedTreeId = await claimGuestTree();
+          if (claimedTreeId) {
+            // Success - show message and redirect
+            setSuccess(t.treeTransferred);
+            setTimeout(() => {
+              router.push(`/${locale}/tree/${claimedTreeId}`);
+              router.refresh();
+            }, 1500);
+          } else {
+            // Tree claim failed but login succeeded - show both messages
+            setSuccess(t.loginSuccess);
+            setError(t.errors.claim_failed);
+            setTimeout(() => {
+              router.push(`/${locale}/tree`);
+              router.refresh();
+            }, 2500);
+          }
+        } else {
+          // No guest tree - just show success and redirect
+          setSuccess(t.loginSuccess);
+          setTimeout(() => {
+            router.push(`/${locale}/tree`);
+            router.refresh();
+          }, 1500);
+        }
       } else {
         setError(t.errors[result.error as keyof typeof t.errors] || t.errors.login_failed);
       }
@@ -110,6 +179,30 @@ export default function LoginPage() {
         {/* Form */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Guest tree notice */}
+            {hasData && tree && (
+              <div className="p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+                <div className="flex items-center gap-3">
+                  <TreeDeciduous className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                      {t.guestTreeNotice}
+                    </p>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+                      {tree.name}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {success && (
+              <div className="p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 text-sm text-center flex items-center justify-center gap-2">
+                <Check className="w-4 h-4" />
+                {success}
+              </div>
+            )}
+
             {error && (
               <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm text-center">
                 {error}
@@ -118,7 +211,7 @@ export default function LoginPage() {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                {t.email}
+                {t.email} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <Mail className="absolute start-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -137,7 +230,7 @@ export default function LoginPage() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  {t.password}
+                  {t.password} <span className="text-red-500">*</span>
                 </label>
                 <a
                   href={`/${locale}/forgot-password`}
@@ -170,9 +263,14 @@ export default function LoginPage() {
             <Button
               type="submit"
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
-              disabled={loading}
+              disabled={loading || claiming}
             >
-              {loading ? (
+              {claiming ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin me-2" />
+                  {t.claimingTree}
+                </>
+              ) : loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin me-2" />
                   {t.loggingIn}

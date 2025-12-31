@@ -12,8 +12,43 @@ import FamilyTree from './FamilyTree';
 /**
  * Sample data for demonstration
  */
+// Helper to create sample person with all required fields
+const createSamplePerson = (data: Partial<Person> & Pick<Person, 'id' | 'tree_id' | 'given_name' | 'gender'>): Person => ({
+  patronymic_chain: null,
+  family_name: null,
+  kunya: null,
+  laqab: null,
+  nisba: null,
+  full_name_ar: null,
+  full_name_en: null,
+  nasab_chain: null,
+  nasab_chain_en: null,
+  tribe_id: null,
+  tribal_branch: null,
+  tribal_verified: false,
+  is_sayyid: false,
+  sayyid_verified: false,
+  sayyid_lineage: null,
+  birth_date: null,
+  birth_date_hijri: null,
+  birth_place: null,
+  birth_place_lat: null,
+  birth_place_lng: null,
+  death_date: null,
+  death_date_hijri: null,
+  death_place: null,
+  death_place_lat: null,
+  death_place_lng: null,
+  is_living: true,
+  photo_url: null,
+  notes: null,
+  created_at: Date.now(),
+  updated_at: Date.now(),
+  ...data,
+});
+
 const samplePersons: Person[] = [
-  {
+  createSamplePerson({
     id: '1',
     tree_id: 'tree-1',
     given_name: 'محمد',
@@ -26,17 +61,10 @@ const samplePersons: Person[] = [
     birth_place: 'الرياض',
     birth_place_lat: 24.7136,
     birth_place_lng: 46.6753,
-    death_date: null,
-    death_place: null,
-    death_place_lat: null,
-    death_place_lng: null,
     is_living: true,
-    photo_url: null,
     notes: 'الجد الأكبر للعائلة',
-    created_at: Date.now(),
-    updated_at: Date.now(),
-  },
-  {
+  }),
+  createSamplePerson({
     id: '2',
     tree_id: 'tree-1',
     given_name: 'فاطمة',
@@ -49,17 +77,9 @@ const samplePersons: Person[] = [
     birth_place: 'جدة',
     birth_place_lat: 21.5433,
     birth_place_lng: 39.1728,
-    death_date: null,
-    death_place: null,
-    death_place_lat: null,
-    death_place_lng: null,
-    is_living: true,
-    photo_url: null,
     notes: 'زوجة محمد',
-    created_at: Date.now(),
-    updated_at: Date.now(),
-  },
-  {
+  }),
+  createSamplePerson({
     id: '3',
     tree_id: 'tree-1',
     given_name: 'أحمد',
@@ -72,17 +92,9 @@ const samplePersons: Person[] = [
     birth_place: 'الرياض',
     birth_place_lat: 24.7136,
     birth_place_lng: 46.6753,
-    death_date: null,
-    death_place: null,
-    death_place_lat: null,
-    death_place_lng: null,
-    is_living: true,
-    photo_url: null,
     notes: 'الابن الأول',
-    created_at: Date.now(),
-    updated_at: Date.now(),
-  },
-  {
+  }),
+  createSamplePerson({
     id: '4',
     tree_id: 'tree-1',
     given_name: 'سارة',
@@ -95,17 +107,9 @@ const samplePersons: Person[] = [
     birth_place: 'الرياض',
     birth_place_lat: 24.7136,
     birth_place_lng: 46.6753,
-    death_date: null,
-    death_place: null,
-    death_place_lat: null,
-    death_place_lng: null,
-    is_living: true,
-    photo_url: null,
     notes: 'الابنة الثانية',
-    created_at: Date.now(),
-    updated_at: Date.now(),
-  },
-  {
+  }),
+  createSamplePerson({
     id: '5',
     tree_id: 'tree-1',
     given_name: 'نورة',
@@ -118,17 +122,9 @@ const samplePersons: Person[] = [
     birth_place: 'الدمام',
     birth_place_lat: 26.4207,
     birth_place_lng: 50.0888,
-    death_date: null,
-    death_place: null,
-    death_place_lat: null,
-    death_place_lng: null,
-    is_living: true,
-    photo_url: null,
     notes: 'زوجة أحمد',
-    created_at: Date.now(),
-    updated_at: Date.now(),
-  },
-  {
+  }),
+  createSamplePerson({
     id: '6',
     tree_id: 'tree-1',
     given_name: 'عبدالله',
@@ -141,17 +137,9 @@ const samplePersons: Person[] = [
     birth_place: 'الرياض',
     birth_place_lat: 24.7136,
     birth_place_lng: 46.6753,
-    death_date: null,
-    death_place: null,
-    death_place_lat: null,
-    death_place_lng: null,
-    is_living: true,
-    photo_url: null,
     notes: 'حفيد محمد',
-    created_at: Date.now(),
-    updated_at: Date.now(),
-  },
-  {
+  }),
+  createSamplePerson({
     id: '7',
     tree_id: 'tree-1',
     given_name: 'ريم',
@@ -164,21 +152,25 @@ const samplePersons: Person[] = [
     birth_place: 'الرياض',
     birth_place_lat: 24.7136,
     birth_place_lng: 46.6753,
-    death_date: null,
-    death_place: null,
-    death_place_lat: null,
-    death_place_lng: null,
-    is_living: true,
-    photo_url: null,
     notes: 'حفيدة محمد',
-    created_at: Date.now(),
-    updated_at: Date.now(),
-  },
+  }),
 ];
+
+// Helper to create sample relationship with all required fields
+const createSampleRelationship = (data: Partial<Relationship> & Pick<Relationship, 'id' | 'tree_id' | 'person1_id' | 'person2_id' | 'relationship_type'>): Relationship => ({
+  marriage_date: null,
+  marriage_date_hijri: null,
+  marriage_place: null,
+  divorce_date: null,
+  divorce_date_hijri: null,
+  divorce_place: null,
+  created_at: Date.now(),
+  ...data,
+});
 
 const sampleRelationships: Relationship[] = [
   // Muhammad (1) and Fatima (2) are spouses
-  {
+  createSampleRelationship({
     id: 'rel-1',
     tree_id: 'tree-1',
     person1_id: '1',
@@ -186,64 +178,41 @@ const sampleRelationships: Relationship[] = [
     relationship_type: 'spouse',
     marriage_date: '1975-05-10',
     marriage_place: 'الرياض',
-    divorce_date: null,
-    divorce_place: null,
-    created_at: Date.now(),
-  },
+  }),
   // Muhammad (1) is parent of Ahmad (3)
-  {
+  createSampleRelationship({
     id: 'rel-2',
     tree_id: 'tree-1',
     person1_id: '1',
     person2_id: '3',
     relationship_type: 'parent',
-    marriage_date: null,
-    marriage_place: null,
-    divorce_date: null,
-    divorce_place: null,
-    created_at: Date.now(),
-  },
+  }),
   // Fatima (2) is parent of Ahmad (3)
-  {
+  createSampleRelationship({
     id: 'rel-3',
     tree_id: 'tree-1',
     person1_id: '2',
     person2_id: '3',
     relationship_type: 'parent',
-    marriage_date: null,
-    marriage_place: null,
-    divorce_date: null,
-    divorce_place: null,
-    created_at: Date.now(),
-  },
+  }),
   // Muhammad (1) is parent of Sarah (4)
-  {
+  createSampleRelationship({
     id: 'rel-4',
     tree_id: 'tree-1',
     person1_id: '1',
     person2_id: '4',
     relationship_type: 'parent',
-    marriage_date: null,
-    marriage_place: null,
-    divorce_date: null,
-    divorce_place: null,
-    created_at: Date.now(),
-  },
+  }),
   // Fatima (2) is parent of Sarah (4)
-  {
+  createSampleRelationship({
     id: 'rel-5',
     tree_id: 'tree-1',
     person1_id: '2',
     person2_id: '4',
     relationship_type: 'parent',
-    marriage_date: null,
-    marriage_place: null,
-    divorce_date: null,
-    divorce_place: null,
-    created_at: Date.now(),
-  },
+  }),
   // Ahmad (3) and Noura (5) are spouses
-  {
+  createSampleRelationship({
     id: 'rel-6',
     tree_id: 'tree-1',
     person1_id: '3',
@@ -251,62 +220,39 @@ const sampleRelationships: Relationship[] = [
     relationship_type: 'spouse',
     marriage_date: '2003-02-14',
     marriage_place: 'الرياض',
-    divorce_date: null,
-    divorce_place: null,
-    created_at: Date.now(),
-  },
+  }),
   // Ahmad (3) is parent of Abdullah (6)
-  {
+  createSampleRelationship({
     id: 'rel-7',
     tree_id: 'tree-1',
     person1_id: '3',
     person2_id: '6',
     relationship_type: 'parent',
-    marriage_date: null,
-    marriage_place: null,
-    divorce_date: null,
-    divorce_place: null,
-    created_at: Date.now(),
-  },
+  }),
   // Noura (5) is parent of Abdullah (6)
-  {
+  createSampleRelationship({
     id: 'rel-8',
     tree_id: 'tree-1',
     person1_id: '5',
     person2_id: '6',
     relationship_type: 'parent',
-    marriage_date: null,
-    marriage_place: null,
-    divorce_date: null,
-    divorce_place: null,
-    created_at: Date.now(),
-  },
+  }),
   // Ahmad (3) is parent of Reem (7)
-  {
+  createSampleRelationship({
     id: 'rel-9',
     tree_id: 'tree-1',
     person1_id: '3',
     person2_id: '7',
     relationship_type: 'parent',
-    marriage_date: null,
-    marriage_place: null,
-    divorce_date: null,
-    divorce_place: null,
-    created_at: Date.now(),
-  },
+  }),
   // Noura (5) is parent of Reem (7)
-  {
+  createSampleRelationship({
     id: 'rel-10',
     tree_id: 'tree-1',
     person1_id: '5',
     person2_id: '7',
     relationship_type: 'parent',
-    marriage_date: null,
-    marriage_place: null,
-    divorce_date: null,
-    divorce_place: null,
-    created_at: Date.now(),
-  },
+  }),
 ];
 
 /**

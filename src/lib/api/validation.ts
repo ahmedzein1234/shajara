@@ -326,11 +326,29 @@ export function validateCreatePerson(data: unknown): CreatePersonInput {
     full_name_ar: input.full_name_ar ? sanitizeText(input.full_name_ar.trim()) : null,
     full_name_en: input.full_name_en ? sanitizeText(input.full_name_en.trim()) : null,
     gender: input.gender,
+    // Arabic name components
+    kunya: input.kunya ? sanitizeText(input.kunya.trim()) : null,
+    laqab: input.laqab ? sanitizeText(input.laqab.trim()) : null,
+    nisba: input.nisba ? sanitizeText(input.nisba.trim()) : null,
+    nasab_chain: input.nasab_chain ? sanitizeText(input.nasab_chain.trim()) : null,
+    nasab_chain_en: input.nasab_chain_en ? sanitizeText(input.nasab_chain_en.trim()) : null,
+    // Tribal affiliation
+    tribe_id: input.tribe_id?.trim() || null,
+    tribal_branch: input.tribal_branch ? sanitizeText(input.tribal_branch.trim()) : null,
+    tribal_verified: input.tribal_verified ?? false,
+    // Sayyid lineage
+    is_sayyid: input.is_sayyid ?? false,
+    sayyid_verified: input.sayyid_verified ?? false,
+    sayyid_lineage: input.sayyid_lineage ? sanitizeText(input.sayyid_lineage.trim()) : null,
+    // Birth info
     birth_date: input.birth_date?.trim() || null,
+    birth_date_hijri: input.birth_date_hijri?.trim() || null,
     birth_place: input.birth_place ? sanitizeText(input.birth_place.trim()) : null,
     birth_place_lat: input.birth_place_lat ?? null,
     birth_place_lng: input.birth_place_lng ?? null,
+    // Death info
     death_date: input.death_date?.trim() || null,
+    death_date_hijri: input.death_date_hijri?.trim() || null,
     death_place: input.death_place ? sanitizeText(input.death_place.trim()) : null,
     death_place_lat: input.death_place_lat ?? null,
     death_place_lng: input.death_place_lng ?? null,
@@ -485,8 +503,10 @@ export function validateCreateRelationship(data: unknown): CreateRelationshipInp
     person2_id: input.person2_id,
     relationship_type: input.relationship_type,
     marriage_date: input.marriage_date?.trim() || null,
+    marriage_date_hijri: input.marriage_date_hijri?.trim() || null,
     marriage_place: input.marriage_place ? sanitizeText(input.marriage_place.trim()) : null,
     divorce_date: input.divorce_date?.trim() || null,
+    divorce_date_hijri: input.divorce_date_hijri?.trim() || null,
     divorce_place: input.divorce_place ? sanitizeText(input.divorce_place.trim()) : null,
   };
 }

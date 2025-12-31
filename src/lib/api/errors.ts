@@ -5,6 +5,7 @@
 
 import { NextResponse } from 'next/server';
 import { ValidationError } from './validation';
+import { PermissionError } from '@/lib/permissions/api';
 
 // =====================================================
 // ERROR TYPES
@@ -97,6 +98,20 @@ export function handleError(error: unknown): NextResponse<ErrorResponse> {
         success: false,
       },
       { status: 400 }
+    );
+  }
+
+  // Permission errors
+  if (error instanceof PermissionError) {
+    return NextResponse.json(
+      {
+        error: {
+          message: error.message,
+          code: 'PERMISSION_DENIED',
+        },
+        success: false,
+      },
+      { status: 403 }
     );
   }
 

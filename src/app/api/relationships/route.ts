@@ -9,7 +9,6 @@ import {
   getDatabase,
   createRelationship,
   getRelationshipsByTreeId,
-  verifyTreeOwnership,
 } from '@/lib/api/db';
 import { validateCreateRelationship } from '@/lib/api/validation';
 import {
@@ -18,12 +17,12 @@ import {
   createdResponse,
   parseJsonBody,
   getSearchParams,
-  ForbiddenError,
   UnauthorizedError,
   BadRequestError,
 } from '@/lib/api/errors';
 import { getCurrentUserId } from '@/lib/auth/session';
 import { invalidateTreeCache, getKVFromEnv } from '@/lib/cache/kv';
+import { requireTreePermission } from '@/lib/permissions/api';
 
 /**
  * GET /api/relationships?tree_id=uuid
@@ -81,11 +80,8 @@ export async function POST(request: NextRequest) {
     const body = await parseJsonBody(request);
     const validatedInput = validateCreateRelationship(body);
 
-    // Verify user owns the tree
-    const isOwner = await verifyTreeOwnership(db, validatedInput.tree_id, userId);
-    if (!isOwner) {
-      throw new ForbiddenError('You do not have permission to add relationships to this tree');
-    }
+    // Check permission to add relationships to this tree
+    await requireTreePermission(db, userId, validatedInput.tree_id, 'canAddRelationship');
 
     const relationship = await createRelationship(db, validatedInput);
 

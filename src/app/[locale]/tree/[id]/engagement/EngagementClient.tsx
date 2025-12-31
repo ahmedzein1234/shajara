@@ -68,7 +68,7 @@ export function EngagementClient({ tree, locale }: EngagementClientProps) {
   const [loadingRequests, setLoadingRequests] = React.useState(false);
 
   const treeName = locale === 'ar' ? tree.name_ar : tree.name_en;
-  const canManage = tree.isOwner || tree.userRole === 'admin' || tree.userRole === 'editor';
+  const canManage = tree.isOwner || tree.userRole === 'manager' || tree.userRole === 'member';
 
   const loadRequests = async () => {
     setLoadingRequests(true);

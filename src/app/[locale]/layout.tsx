@@ -9,6 +9,7 @@ import { ServiceWorkerRegistration, InstallPrompt } from '@/components/pwa';
 import { ToastProvider } from '@/components/ui/toast';
 import { TourProvider, TourOverlay } from '@/components/onboarding';
 import { CookieConsent } from '@/components/CookieConsent';
+import { GuestProvider } from '@/contexts/GuestContext';
 
 const locales = ['ar', 'en'];
 
@@ -119,21 +120,23 @@ export default async function LocaleLayout({
     <html lang={locale} dir={dir}>
       <body>
         <NextIntlClientProvider messages={messages}>
-          <ToastProvider>
-            <TourProvider autoStart={true}>
-              <ServiceWorkerRegistration />
-              <div className="flex flex-col min-h-screen">
-                <Header user={user} />
-                <main className="flex-grow">
-                  {children}
-                </main>
-                <Footer locale={locale} />
-              </div>
-              <InstallPrompt />
-              <TourOverlay locale={locale as 'ar' | 'en'} />
-              <CookieConsent locale={locale as 'ar' | 'en'} />
-            </TourProvider>
-          </ToastProvider>
+          <GuestProvider>
+            <ToastProvider>
+              <TourProvider autoStart={true}>
+                <ServiceWorkerRegistration />
+                <div className="flex flex-col min-h-screen">
+                  <Header user={user} />
+                  <main className="flex-grow">
+                    {children}
+                  </main>
+                  <Footer locale={locale} />
+                </div>
+                <InstallPrompt />
+                <TourOverlay locale={locale as 'ar' | 'en'} />
+                <CookieConsent locale={locale as 'ar' | 'en'} />
+              </TourProvider>
+            </ToastProvider>
+          </GuestProvider>
         </NextIntlClientProvider>
       </body>
     </html>

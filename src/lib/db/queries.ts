@@ -343,29 +343,8 @@ export async function getSpouses(db: D1Database, personId: string): Promise<Spou
     .all<any>();
 
   return results.results.map((row) => {
-    const person1 = dbToPerson({
-      id: row.id,
-      tree_id: row.tree_id,
-      given_name: row.given_name,
-      patronymic_chain: row.patronymic_chain,
-      family_name: row.family_name,
-      full_name_ar: row.full_name_ar,
-      full_name_en: row.full_name_en,
-      gender: row.gender,
-      birth_date: row.birth_date,
-      birth_place: row.birth_place,
-      birth_place_lat: row.birth_place_lat,
-      birth_place_lng: row.birth_place_lng,
-      death_date: row.death_date,
-      death_place: row.death_place,
-      death_place_lat: row.death_place_lat,
-      death_place_lng: row.death_place_lng,
-      is_living: row.is_living,
-      photo_url: row.photo_url,
-      notes: row.notes,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-    });
+    // Cast row as DbPerson - all columns come from database
+    const person1 = dbToPerson(row as unknown as DbPerson);
 
     return {
       person1,
