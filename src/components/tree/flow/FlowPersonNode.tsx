@@ -8,7 +8,7 @@
 
 import React, { memo, useState, useCallback } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Calendar, MapPin, Crown, Camera, MoreHorizontal } from 'lucide-react';
+import { Calendar, MapPin, Crown, Camera, Plus, Heart, Baby } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Person } from '@/lib/db/schema';
 
@@ -26,7 +26,17 @@ export interface PersonNodeData extends Record<string, unknown> {
 }
 
 function FlowPersonNodeComponent({ data, selected }: NodeProps) {
-  const { person, isRoot, isSelected, isHighlighted, locale = 'ar', onViewDetails } = data as PersonNodeData;
+  const {
+    person,
+    isRoot,
+    isSelected,
+    isHighlighted,
+    locale = 'ar',
+    onViewDetails,
+    onAddParent,
+    onAddSpouse,
+    onAddChild,
+  } = data as PersonNodeData;
   const [isHovered, setIsHovered] = useState(false);
 
   const isMale = person.gender === 'male';
@@ -271,6 +281,80 @@ function FlowPersonNodeComponent({ data, selected }: NodeProps) {
         )}
         style={{ opacity: isHovered ? 1 : 0 }}
       />
+
+      {/* Quick action buttons - appear on hover */}
+      {isHovered && (
+        <>
+          {/* Add Parent - Top */}
+          {onAddParent && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onAddParent(person);
+              }}
+              className={cn(
+                'absolute -top-14 left-1/2 -translate-x-1/2 z-50',
+                'flex items-center justify-center',
+                'w-10 h-10 rounded-full',
+                'bg-white shadow-lg border-2 border-amber-400',
+                'hover:scale-110 hover:shadow-xl hover:bg-amber-50',
+                'transition-all duration-200',
+                'animate-in fade-in-0 zoom-in-50 duration-200'
+              )}
+              title={locale === 'ar' ? 'إضافة والد/والدة' : 'Add Parent'}
+            >
+              <Crown className="w-5 h-5 text-amber-500" />
+              <Plus className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-white rounded-full p-0.5" />
+            </button>
+          )}
+
+          {/* Add Spouse - Right */}
+          {onAddSpouse && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onAddSpouse(person);
+              }}
+              className={cn(
+                'absolute top-1/2 -translate-y-1/2 -right-14 z-50',
+                'flex items-center justify-center',
+                'w-10 h-10 rounded-full',
+                'bg-white shadow-lg border-2 border-rose-400',
+                'hover:scale-110 hover:shadow-xl hover:bg-rose-50',
+                'transition-all duration-200',
+                'animate-in fade-in-0 slide-in-from-left-2 duration-200'
+              )}
+              title={locale === 'ar' ? 'إضافة زوج/زوجة' : 'Add Spouse'}
+            >
+              <Heart className="w-5 h-5 text-rose-500" />
+              <Plus className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white rounded-full p-0.5" />
+            </button>
+          )}
+
+          {/* Add Child - Bottom */}
+          {onAddChild && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onAddChild(person);
+              }}
+              className={cn(
+                'absolute -bottom-14 left-1/2 -translate-x-1/2 z-50',
+                'flex items-center justify-center',
+                'w-10 h-10 rounded-full',
+                'bg-white shadow-lg border-2 border-emerald-400',
+                'hover:scale-110 hover:shadow-xl hover:bg-emerald-50',
+                'transition-all duration-200',
+                'animate-in fade-in-0 zoom-in-50 duration-200'
+              )}
+              title={locale === 'ar' ? 'إضافة ابن/ابنة' : 'Add Child'}
+            >
+              <Baby className="w-5 h-5 text-emerald-500" />
+              <Plus className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 text-white rounded-full p-0.5" />
+            </button>
+          )}
+        </>
+      )}
     </div>
   );
 }

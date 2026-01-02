@@ -97,6 +97,7 @@ export default async function TreeViewPage({
             <div className="card p-0 overflow-hidden" style={{ height: '700px' }}>
               {persons.length > 0 ? (
                 <TreeViewClient
+                  treeId={id}
                   persons={persons}
                   relationships={relationships}
                   rootPersonId={rootPersonId}

@@ -66,6 +66,9 @@ interface ReactFlowTreeProps {
   locale?: 'ar' | 'en';
   onPersonClick?: (person: Person) => void;
   onPersonDoubleClick?: (person: Person) => void;
+  onAddParent?: (person: Person) => void;
+  onAddSpouse?: (person: Person) => void;
+  onAddChild?: (person: Person) => void;
   className?: string;
 }
 
@@ -283,6 +286,9 @@ function ReactFlowTreeInner({
   locale = 'ar',
   onPersonClick,
   onPersonDoubleClick,
+  onAddParent,
+  onAddSpouse,
+  onAddChild,
   className,
 }: ReactFlowTreeProps) {
   const { fitView, zoomIn, zoomOut, setCenter, getNode } = useReactFlow();
@@ -313,11 +319,14 @@ function ReactFlowTreeInner({
           ...node.data,
           locale,
           onViewDetails: onPersonClick,
+          onAddParent,
+          onAddSpouse,
+          onAddChild,
           isHighlighted: node.id === highlightedPersonId,
         },
       }))
     );
-  }, [locale, onPersonClick, setNodes, highlightedPersonId]);
+  }, [locale, onPersonClick, onAddParent, onAddSpouse, onAddChild, setNodes, highlightedPersonId]);
 
   // Fit view on initial load
   useEffect(() => {
